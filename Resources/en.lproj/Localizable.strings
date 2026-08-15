@@ -58,3 +58,15 @@
 "notify.turnedOff" = "SleepSwitch turned the mode off";
 "notify.unplugged" = "The power adapter was unplugged. Your Mac sleeps as configured again.";
 "notify.lowBattery" = "The battery is down to %d%%. Your Mac sleeps as configured again.";
+
+/* Missing sudo rule, and uninstalling */
+"alert.cancel" = "Cancel";
+"alert.banOutlives.title" = "The sleep ban can outlive the app";
+"alert.banOutlives.text" = "Blocking lid-close sleep is a system setting rather than something the app holds. Without the sudo rule SleepSwitch cannot clear it quietly when you log out, so it survives a restart and your Mac keeps skipping sleep with nothing on screen to say why. Setting the rule up costs one password and prevents that.";
+"alert.banOutlives.continue" = "Turn the mode on anyway";
+"menu.uninstall" = "Uninstall SleepSwitch…";
+"uninstall.confirm.title" = "Uninstall SleepSwitch?";
+"uninstall.confirm.text" = "This clears the sleep ban first, then removes the app, the sudo rule in /etc/sudoers.d/sleepswitch, the installation receipt and your settings. An administrator password is required, and SleepSwitch quits once it is done.";
+"uninstall.confirm.button" = "Uninstall";
+"uninstall.failed" = "Could not finish uninstalling";
+"error.badPath" = "The app sits in a folder this cannot handle safely.";

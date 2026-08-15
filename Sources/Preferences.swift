@@ -11,6 +11,7 @@ enum Preferences {
         static let announcedVersion = "announcedVersion"
         static let batteryFloor = "batteryFloor"
         static let onlyOnPower = "onlyOnPower"
+        static let warnedAboutMissingRule = "warnedAboutMissingRule"
     }
 
     private static let store = UserDefaults.standard
@@ -36,6 +37,13 @@ enum Preferences {
     static var onlyOnPower: Bool {
         get { store.bool(forKey: Key.onlyOnPower) }
         set { store.set(newValue, forKey: Key.onlyOnPower) }
+    }
+
+    /// Whether the user has already been told that without the sudo rule the sleep ban can
+    /// outlive the app. Said once — repeating it on every switch would be nagging.
+    static var warnedAboutMissingRule: Bool {
+        get { store.bool(forKey: Key.warnedAboutMissingRule) }
+        set { store.set(newValue, forKey: Key.warnedAboutMissingRule) }
     }
 
     /// Turn the mode on as soon as the app starts.

@@ -39,7 +39,7 @@ the lid propped open.
 - **Updates itself from GitHub** — checks daily, hands you the installer, never swaps
   binaries behind your back.
 - **English and Russian**, app and installer, following your system language.
-- **Two Swift files**, no dependencies, no background daemon, no telemetry.
+- **Plain Swift**, no dependencies, no background daemon, no telemetry.
 - **Universal binary**, Apple Silicon and Intel.
 
 ## Install
@@ -185,8 +185,11 @@ language — English or Russian.
 **To upgrade, delete nothing.** Open the newer `.pkg` — the installer stops the running
 copy and replaces the bundle in place. Your settings and the `sudo` rule survive.
 
-**To remove it for good**, run [`uninstall.sh`](uninstall.sh) from a checkout, or the
-equivalent by hand:
+**To remove it for good**, use **Uninstall SleepSwitch…** in the menu. It clears the sleep
+ban first — while the `sudo` rule is still there to do that quietly — then removes the app,
+the rule, the receipt and your settings, and quits. One password, one confirmation.
+
+From a checkout you can run [`uninstall.sh`](uninstall.sh) instead, or do it by hand:
 
 ```bash
 sudo pmset -a disablesleep 0          # first — see the warning below

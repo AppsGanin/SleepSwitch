@@ -58,3 +58,15 @@
 "notify.turnedOff" = "SleepSwitch выключил режим";
 "notify.unplugged" = "Отключили питание от сети. Mac снова засыпает как настроено.";
 "notify.lowBattery" = "Заряд упал до %d%%. Mac снова засыпает как настроено.";
+
+/* Missing sudo rule, and uninstalling */
+"alert.cancel" = "Отмена";
+"alert.banOutlives.title" = "Запрет сна может пережить приложение";
+"alert.banOutlives.text" = "Запрет сна при закрытии крышки — системная настройка, а не то, что держит приложение. Без правила sudo SleepSwitch не сможет снять её тихо при выходе из системы, поэтому она переживёт перезагрузку: Mac продолжит не засыпать, и на экране ничто об этом не скажет. Правило ставится одним паролем и снимает эту проблему.";
+"alert.banOutlives.continue" = "Всё равно включить";
+"menu.uninstall" = "Удалить SleepSwitch…";
+"uninstall.confirm.title" = "Удалить SleepSwitch?";
+"uninstall.confirm.text" = "Сначала будет снят запрет сна, затем удалены приложение, правило sudo в /etc/sudoers.d/sleepswitch, запись об установке и ваши настройки. Потребуется пароль администратора; по завершении SleepSwitch закроется.";
+"uninstall.confirm.button" = "Удалить";
+"uninstall.failed" = "Не удалось завершить удаление";
+"error.badPath" = "Приложение лежит в папке, которую нельзя обработать безопасно.";

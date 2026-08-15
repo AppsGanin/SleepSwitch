@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0
+
+- **Uninstall from the menu**, behind a confirmation. Anyone who installed the `.pkg` had no
+  way to remove the app cleanly — `uninstall.sh` lives in the repository, not on their disk.
+  It clears the sleep ban first, while the sudo rule is still there to make that quiet, then
+  removes the app, the rule, the receipt and the settings, and quits.
+- **A warning the first time the mode is switched on without the sudo rule.** The ban is a
+  system setting: without the rule the app cannot clear it quietly at logout, and a modal
+  password dialog there would block the shutdown — so it survived into the next boot, where
+  the app might not even be running to show it. The warning offers to set the rule up on the
+  spot, and is shown once rather than on every switch.
+
 ## 1.3.1
 
 - The battery settings are hidden on a Mac with no built-in battery instead of sitting

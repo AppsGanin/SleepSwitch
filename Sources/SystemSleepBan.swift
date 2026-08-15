@@ -138,7 +138,10 @@ enum SystemSleepBan {
 
     /// The stock macOS administrator dialog. The password is typed into a system window;
     /// the app never sees it.
-    private static func runAsAdministrator(_ shellCommand: String) -> Result<Void, Failure> {
+    ///
+    /// Not private: `Uninstaller` needs the same one-prompt-for-everything behaviour, and a
+    /// second copy of this escaping would be a second thing to get wrong.
+    static func runAsAdministrator(_ shellCommand: String) -> Result<Void, Failure> {
         // Order matters: backslashes first, or the escaping eats itself.
         let escaped = shellCommand
             .replacingOccurrences(of: "\\", with: "\\\\")

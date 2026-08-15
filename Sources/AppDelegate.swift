@@ -94,7 +94,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - State
 
     private func toggleMode() {
+        if !mode.isOn { warnIfTheBanCouldOutliveUs() }
         apply(mode.set(!mode.isOn))
+    }
+
+    /// Without the sudo rule the app cannot clear the ban quietly when the session ends,
+    /// and a modal password dialog during logout would block the shutdown. So the ban
+    /// survives into the next boot — where the app may not even be running to show it.
+    /// Said once: repeating it on every switch would be nagging.
+    private func warnIfTheBanCouldOutliveUs() {
+        guard !SystemSleepBan.hasPasswordlessRule,
+              !Preferences.warnedAboutMissingRule else { return }
+        Preferences.warnedAboutMissingRule = true
+
+        let choice = Alerts.choose(
+            title: L("alert.banOutlives.title", "The sleep ban can outlive the app"),
+            text: L("alert.banOutlives.text",
+                    "Blocking lid-close sleep is a system setting rather than something the "
+                        + "app holds. Without the sudo rule SleepSwitch cannot clear it "
+                        + "quietly when you log out, so it survives a restart and your Mac "
+                        + "keeps skipping sleep with nothing on screen to say why. Setting "
+                        + "the rule up costs one password and prevents that."),
+            buttons: [
+                L("alert.autoEnable.install", "Set up passwordless toggling…"),
+                L("alert.banOutlives.continue", "Turn the mode on anyway"),
+            ]
+        )
+        if choice == 0 { menuInstallRule() }
     }
 
     private func apply(_ outcome: SleepMode.Outcome) {
@@ -246,6 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The version belongs on screen: the app updates itself, and otherwise the only
         // way to tell which build is running is Finder → Get Info.
         menu.addItem(label("SleepSwitch \(Updater.currentVersion)"))
+        menu.addItem(action(L("menu.uninstall", "Uninstall SleepSwitch…"), #selector(menuUninstall)))
         menu.addItem(action(L("menu.quit", "Quit SleepSwitch"), #selector(menuQuit), key: "q"))
         return menu
     }
@@ -313,6 +340,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func menuQuit() {
+        NSApp.terminate(nil)
+    }
+
+    @objc private func menuUninstall() {
+        let confirmed = Alerts.confirmDestructive(
+            title: L("uninstall.confirm.title", "Uninstall SleepSwitch?"),
+            text: L("uninstall.confirm.text",
+                    "This clears the sleep ban first, then removes the app, the sudo rule in "
+                        + "/etc/sudoers.d/sleepswitch, the installation receipt and your "
+                        + "settings. An administrator password is required, and SleepSwitch "
+                        + "quits once it is done."),
+            confirm: L("uninstall.confirm.button", "Uninstall")
+        )
+        guard confirmed else { return }
+
+        switch Uninstaller.run() {
+        case .failure(.cancelled):
+            return
+        case .failure(.failed(let message)):
+            Alerts.show(title: L("uninstall.failed", "Could not finish uninstalling"),
+                        text: message, style: .warning)
+            return
+        case .success:
+            break
+        }
+
+        // The ban is already gone and so is the sudo rule, so let the mode drop its
+        // ownership quietly — otherwise quitting would ask for a password all over again.
+        mode.relinquish(mayAskPassword: false)
+        Uninstaller.removePreferences()
         NSApp.terminate(nil)
     }
 
