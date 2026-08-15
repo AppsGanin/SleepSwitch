@@ -1,0 +1,13 @@
+#!/bin/bash
+# Запускаем приложение от имени того, кто сидит за компьютером, а не от root.
+APP="/Applications/SleepSwitch.app"
+
+CONSOLE_USER="$(/usr/bin/stat -f%Su /dev/console 2>/dev/null)"
+if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ]; then
+	CONSOLE_UID="$(/usr/bin/id -u "$CONSOLE_USER" 2>/dev/null)"
+	if [ -n "$CONSOLE_UID" ]; then
+		/bin/launchctl asuser "$CONSOLE_UID" \
+			/usr/bin/sudo -u "$CONSOLE_USER" /usr/bin/open "$APP" 2>/dev/null || true
+	fi
+fi
+exit 0

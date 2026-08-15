@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  installer:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Собрать установщик
+        run: ./make-installer.sh
+
+      - name: Проверить результат
+        run: |
+          set -e
+          echo "Архитектуры:"
+          lipo -archs build/SleepSwitch.app/Contents/MacOS/SleepSwitch
+          echo "Подпись:"
+          codesign --verify --strict --verbose=2 build/SleepSwitch.app
+          echo "Компоненты установщика:"
+          installer -pkginfo -pkg dist/*.pkg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SleepSwitch-installer
+          path: dist/*.pkg
+          if-no-files-found: error

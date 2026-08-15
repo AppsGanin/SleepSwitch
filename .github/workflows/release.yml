@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег релиза, например v1.0.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Определить версию
+        id: v
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG"            >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}"    >> "$GITHUB_OUTPUT"
+
+      - name: Собрать установщик
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: ./make-installer.sh
+
+      - name: Упаковать .app отдельно
+        run: |
+          ditto -c -k --keepParent build/SleepSwitch.app \
+            "dist/SleepSwitch-${{ steps.v.outputs.version }}.zip"
+
+      - name: Написать описание релиза
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Переключатель в строке меню: одним кликом запрещает MacBook засыпать —
+          и при закрытии крышки, и по таймеру бездействия.
+
+          ## Установка
+
+          Скачайте `.pkg` и откройте его. Установщик положит приложение в «Программы»,
+          запустит его и (по желанию) добавит правило sudo, чтобы режим переключался
+          без ввода пароля.
+
+          > **Приложение не подписано сертификатом Apple.** При первом запуске macOS
+          > откажется открывать пакет. Нажмите на файл правой кнопкой → **«Открыть»** →
+          > в диалоге ещё раз **«Открыть»**. Дальше установка идёт как обычно.
+
+          Файл `.zip` — то же приложение без установщика, если хотите положить его руками.
+
+          ## Управление
+
+          Левый клик по иконке — включить/выключить. Правый клик — меню с настройками.
+          Луна — обычный режим, чашка — сон запрещён, треугольник — режим включён
+          частично (крышка всё ещё усыпит Mac).
+
+          Требуется macOS 13 или новее. Universal — Apple Silicon и Intel.
+          NOTES
+
+      - name: Создать релиз
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.v.outputs.tag }}" \
+            dist/*.pkg dist/*.zip \
+            --title "SleepSwitch ${{ steps.v.outputs.version }}" \
+            --notes-file release-notes.md

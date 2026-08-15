@@ -1,0 +1,4 @@
+#!/bin/bash
+# Закрываем запущенную копию, чтобы бандл можно было заменить целиком.
+/usr/bin/pkill -x SleepSwitch 2>/dev/null || true
+exit 0

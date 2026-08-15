@@ -1,0 +1,37 @@
+#!/bin/bash
+# Ставит правило sudo, разрешающее ровно две команды pmset без пароля.
+# Любая неудача здесь не должна валить установку самого приложения — всегда exit 0.
+set -u
+
+SUDOERS="/etc/sudoers.d/sleepswitch"
+PMSET="/usr/bin/pmset"
+
+TARGET_USER="$(/usr/bin/stat -f%Su /dev/console 2>/dev/null)"
+if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = "root" ]; then
+	TARGET_USER="${USER:-}"
+fi
+if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = "root" ]; then
+	echo "SleepSwitch: не удалось определить пользователя — правило sudo пропущено." >&2
+	exit 0
+fi
+
+WORK="$(/usr/bin/mktemp -d)" || exit 0
+DRAFT="$WORK/sleepswitch"
+
+/bin/cat > "$DRAFT" <<EOF
+# Создано установщиком SleepSwitch.
+# Разрешает переключать запрет сна без ввода пароля — и ничего больше.
+# Удалить: sudo rm $SUDOERS
+$TARGET_USER ALL=(root) NOPASSWD: $PMSET -a disablesleep 0
+$TARGET_USER ALL=(root) NOPASSWD: $PMSET -a disablesleep 1
+EOF
+
+if /usr/sbin/visudo -cf "$DRAFT" >/dev/null 2>&1; then
+	/usr/bin/install -m 0440 -o root -g wheel "$DRAFT" "$SUDOERS"
+	echo "SleepSwitch: правило sudo установлено для пользователя $TARGET_USER."
+else
+	echo "SleepSwitch: правило не прошло проверку visudo — пропущено." >&2
+fi
+
+/bin/rm -rf "$WORK"
+exit 0

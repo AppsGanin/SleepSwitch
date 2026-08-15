@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+	<title>SleepSwitch</title>
+	<organization>com.ganin</organization>
+
+	<welcome file="welcome.html" mime-type="text/html"/>
+	<conclusion file="conclusion.html" mime-type="text/html"/>
+
+	<options customize="allow" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+
+	<volume-check>
+		<allowed-os-versions>
+			<os-version min="13.0"/>
+		</allowed-os-versions>
+	</volume-check>
+
+	<choices-outline>
+		<line choice="app"/>
+		<line choice="sudoers"/>
+	</choices-outline>
+
+	<choice id="app"
+		title="Приложение SleepSwitch"
+		description="Переключатель в строке меню. Устанавливается в /Applications."
+		start_selected="true"
+		start_enabled="false">
+		<pkg-ref id="com.ganin.sleepswitch.app"/>
+	</choice>
+
+	<choice id="sudoers"
+		title="Переключение без пароля"
+		description="Добавляет правило в /etc/sudoers.d/sleepswitch, разрешающее вашей учётной записи выполнять ровно две команды без пароля: «pmset -a disablesleep 0» и «pmset -a disablesleep 1». Без этого macOS будет спрашивать пароль администратора при каждом переключении. Удалить позже: sudo rm /etc/sudoers.d/sleepswitch"
+		start_selected="true">
+		<pkg-ref id="com.ganin.sleepswitch.sudoers"/>
+	</choice>
+
+	<pkg-ref id="com.ganin.sleepswitch.app" version="__VERSION__" onConclusion="none">app.pkg</pkg-ref>
+	<pkg-ref id="com.ganin.sleepswitch.sudoers" version="__VERSION__" onConclusion="none">sudoers.pkg</pkg-ref>
+</installer-gui-script>
