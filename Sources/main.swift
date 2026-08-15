@@ -3,16 +3,27 @@ import IOKit
 import IOKit.pwr_mgt
 import ServiceManagement
 
+// MARK: - Локализация
+
+/// Короткая обёртка над NSLocalizedString. Второй аргумент — английский текст:
+/// он же используется как запасной вариант, если .lproj по какой-то причине не нашёлся.
+func L(_ key: String, _ english: String) -> String {
+    NSLocalizedString(key, tableName: nil, bundle: .main, value: english, comment: "")
+}
+
 // MARK: - Ключи настроек
 
 enum Defaults {
     static let keepDisplayAwake = "keepDisplayAwake"
     static let enableAtLaunch = "enableAtLaunch"
+    static let autoCheckUpdates = "autoCheckUpdates"
+    static let lastUpdateCheck = "lastUpdateCheck"
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
             keepDisplayAwake: true,
             enableAtLaunch: false,
+            autoCheckUpdates: true,
         ])
     }
 }
@@ -129,17 +140,20 @@ enum SleepDisable {
     static func installPasswordlessRule() -> Result<Void, Failure> {
         let user = NSUserName()
         guard isSafeUserName(user) else {
-            return .failure(.failed("Недопустимое имя учётной записи: «\(user)»."))
+            let format = L("error.badUserName", "Unsupported account name: “%@”.")
+            return .failure(.failed(String(format: format, user)))
         }
 
+        // Комментарии в sudoers оставляем английскими: это системный файл,
+        // и читать его будет тот, кто разбирается в конфигурации машины.
         let lines = [
-            "# Создано SleepSwitch. Разрешает переключать запрет сна без ввода пароля.",
-            "# Удалить: sudo rm \(sudoersPath)",
+            "# Installed by SleepSwitch. Allows toggling the sleep ban without a password.",
+            "# Remove with: sudo rm \(sudoersPath)",
             "\(user) ALL=(root) NOPASSWD: \(pmsetPath) -a disablesleep 0",
             "\(user) ALL=(root) NOPASSWD: \(pmsetPath) -a disablesleep 1",
         ]
         guard lines.allSatisfy({ !$0.contains("'") }) else {
-            return .failure(.failed("Не удалось безопасно сформировать правило."))
+            return .failure(.failed(L("error.ruleBuild", "Could not build the rule safely.")))
         }
 
         // Файл готовится, проверяется и ставится целиком под root во временной папке
@@ -195,7 +209,7 @@ enum SleepDisable {
 
         var errorInfo: NSDictionary?
         guard let script = NSAppleScript(source: source) else {
-            return .failure(.failed("Не удалось собрать запрос прав."))
+            return .failure(.failed(L("error.scriptBuild", "Could not build the privilege request.")))
         }
         script.executeAndReturnError(&errorInfo)
 
@@ -204,7 +218,8 @@ enum SleepDisable {
         if (errorInfo[NSAppleScript.errorNumber] as? Int) == -128 {
             return .failure(.cancelled)
         }
-        let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Неизвестная ошибка."
+        let message = errorInfo[NSAppleScript.errorMessage] as? String
+            ?? L("error.unknown", "Unknown error.")
         return .failure(.failed(message))
     }
 }
@@ -223,6 +238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isShowingMenu = false
     private var currentSymbol: String?
     private var sigtermSource: DispatchSourceSignal?
+    private var updateTimer: Timer?
 
     private var keepDisplayAwake: Bool {
         get { UserDefaults.standard.bool(forKey: Defaults.keepDisplayAwake) }
@@ -232,6 +248,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var enableAtLaunch: Bool {
         get { UserDefaults.standard.bool(forKey: Defaults.enableAtLaunch) }
         set { UserDefaults.standard.set(newValue, forKey: Defaults.enableAtLaunch) }
+    }
+
+    private var autoCheckUpdates: Bool {
+        get { UserDefaults.standard.bool(forKey: Defaults.autoCheckUpdates) }
+        set { UserDefaults.standard.set(newValue, forKey: Defaults.autoCheckUpdates) }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -262,6 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         installSignalHandler()
+        scheduleUpdateChecks()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -315,7 +337,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // в частичном режиме, при выключении — см. сверку ниже.
             break
         case .failure(.failed(let message)):
-            showAlert(title: "Не удалось изменить настройку сна",
+            showAlert(title: L("alert.sleepFailed", "Could not change the sleep setting"),
                       text: message,
                       style: .warning)
         }
@@ -371,9 +393,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private var statusLine: String {
-        if !isOn { return "Обычный режим — Mac засыпает как настроено" }
-        if isFullyOn { return "Не спит: крышка и бездействие игнорируются" }
-        return "Частично: сон по бездействию запрещён, но крышка усыпит Mac"
+        if !isOn {
+            return L("status.off", "Normal mode — your Mac sleeps as configured")
+        }
+        if isFullyOn {
+            return L("status.on", "Awake: lid and idle timer are ignored")
+        }
+        return L("status.partial", "Partial: idle sleep blocked, but the lid still sleeps")
     }
 
     // MARK: меню
@@ -405,24 +431,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         header.isEnabled = false
         menu.addItem(header)
 
-        menu.addItem(item(isOn ? "Выключить режим" : "Включить режим",
+        menu.addItem(item(isOn ? L("menu.turnOff", "Turn the mode off")
+                               : L("menu.turnOn", "Turn the mode on"),
                           #selector(menuToggle), key: "t"))
         menu.addItem(.separator())
 
-        menu.addItem(check("Не гасить экран", #selector(menuToggleDisplay), on: keepDisplayAwake))
-        menu.addItem(check("Включать режим при запуске", #selector(menuToggleAutoEnable), on: enableAtLaunch))
-        menu.addItem(check("Запускать при входе в систему", #selector(menuToggleLoginItem), on: isLoginItemEnabled))
+        menu.addItem(check(L("menu.keepDisplay", "Keep the screen on"),
+                           #selector(menuToggleDisplay), on: keepDisplayAwake))
+        menu.addItem(check(L("menu.enableAtLaunch", "Turn the mode on at launch"),
+                           #selector(menuToggleAutoEnable), on: enableAtLaunch))
+        menu.addItem(check(L("menu.loginItem", "Open at login"),
+                           #selector(menuToggleLoginItem), on: isLoginItemEnabled))
         menu.addItem(.separator())
 
         if SleepDisable.hasPasswordlessRule {
-            menu.addItem(item("Снова спрашивать пароль…", #selector(menuRemoveRule)))
+            menu.addItem(item(L("menu.removeRule", "Ask for the password again…"),
+                              #selector(menuRemoveRule)))
         } else {
-            menu.addItem(item("Переключать без пароля…", #selector(menuInstallRule)))
+            menu.addItem(item(L("menu.installRule", "Toggle without a password…"),
+                              #selector(menuInstallRule)))
         }
-        menu.addItem(item("Настройки блокировки экрана…", #selector(menuOpenLockSettings)))
+        menu.addItem(item(L("menu.lockSettings", "Screen lock settings…"),
+                          #selector(menuOpenLockSettings)))
         menu.addItem(.separator())
 
-        menu.addItem(item("Выйти из SleepSwitch", #selector(menuQuit), key: "q"))
+        menu.addItem(check(L("menu.autoUpdate", "Check for updates automatically"),
+                           #selector(menuToggleAutoUpdate), on: autoCheckUpdates))
+        menu.addItem(item(L("menu.checkUpdates", "Check for updates…"),
+                          #selector(menuCheckUpdates)))
+        menu.addItem(.separator())
+
+        menu.addItem(item(L("menu.quit", "Quit SleepSwitch"), #selector(menuQuit), key: "q"))
         return menu
     }
 
@@ -452,14 +491,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func menuInstallRule() {
         switch SleepDisable.installPasswordlessRule() {
         case .success:
-            showAlert(title: "Готово",
-                      text: "Теперь режим переключается без пароля.",
+            showAlert(title: L("alert.ruleInstalled.title", "Done"),
+                      text: L("alert.ruleInstalled.text",
+                              "The mode now toggles without a password."),
                       style: .informational)
         case .failure(.cancelled):
             break
-        case .failure(let error):
-            showAlert(title: "Не удалось установить правило",
-                      text: String(describing: error), style: .warning)
+        case .failure(.failed(let message)):
+            showAlert(title: L("alert.ruleInstallFailed", "Could not install the rule"),
+                      text: message, style: .warning)
         }
     }
 
@@ -467,9 +507,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch SleepDisable.removePasswordlessRule() {
         case .success, .failure(.cancelled):
             break
-        case .failure(let error):
-            showAlert(title: "Не удалось удалить правило",
-                      text: String(describing: error), style: .warning)
+        case .failure(.failed(let message)):
+            showAlert(title: L("alert.ruleRemoveFailed", "Could not remove the rule"),
+                      text: message, style: .warning)
         }
     }
 
@@ -480,6 +520,107 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuQuit() {
         NSApp.terminate(nil)
+    }
+
+    // MARK: обновления
+
+    @objc private func menuToggleAutoUpdate() { autoCheckUpdates.toggle() }
+
+    @objc private func menuCheckUpdates() { checkForUpdates(quietWhenCurrent: false) }
+
+    private func scheduleUpdateChecks() {
+        // Первую проверку откладываем: сразу после входа в систему сети может ещё не быть.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            self?.checkForUpdatesIfDue()
+        }
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
+            self?.checkForUpdatesIfDue()
+        }
+    }
+
+    private func checkForUpdatesIfDue() {
+        guard autoCheckUpdates else { return }
+        let last = UserDefaults.standard.object(forKey: Defaults.lastUpdateCheck) as? Date
+        if let last, Date().timeIntervalSince(last) < 24 * 3600 { return }
+        checkForUpdates(quietWhenCurrent: true)
+    }
+
+    private func checkForUpdates(quietWhenCurrent: Bool) {
+        UserDefaults.standard.set(Date(), forKey: Defaults.lastUpdateCheck)
+        Updater.fetchLatest { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let release)
+                where Updater.isNewer(release.version, than: Updater.currentVersion):
+                self.offerUpdate(release)
+            case .success:
+                guard !quietWhenCurrent else { return }
+                self.showAlert(
+                    title: L("update.upToDate.title", "You are up to date"),
+                    text: String(format: L("update.upToDate.text",
+                                           "SleepSwitch %@ is the latest version."),
+                                 Updater.currentVersion),
+                    style: .informational)
+            case .failure(let error):
+                guard !quietWhenCurrent else { return }
+                self.showAlert(title: L("update.failed.title", "Could not check for updates"),
+                               text: self.describe(error), style: .warning)
+            }
+        }
+    }
+
+    private func offerUpdate(_ release: Updater.Release) {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = String(format: L("update.available.title",
+                                             "SleepSwitch %@ is available"),
+                                   release.version)
+        alert.informativeText = String(format: L("update.available.text",
+                                                 "You have version %@. Download the installer?"),
+                                       Updater.currentVersion)
+        alert.addButton(withTitle: L("update.download", "Download"))
+        alert.addButton(withTitle: L("update.notes", "Release notes"))
+        alert.addButton(withTitle: L("update.later", "Later"))
+        NSApp.activate(ignoringOtherApps: true)
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            if let package = release.package {
+                startDownload(package)
+            } else {
+                NSWorkspace.shared.open(release.page)
+            }
+        case .alertSecondButtonReturn:
+            NSWorkspace.shared.open(release.page)
+        default:
+            break
+        }
+    }
+
+    private func startDownload(_ url: URL) {
+        Updater.download(url) { [weak self] result in
+            switch result {
+            case .success(let file):
+                // Приложение не подменяет себя само: пакет открывается системным
+                // установщиком, там пользователь и проходит авторизацию.
+                NSWorkspace.shared.open(file)
+            case .failure(let error):
+                self?.showAlert(
+                    title: L("update.downloadFailed.title", "Could not download the update"),
+                    text: self?.describe(error) ?? "", style: .warning)
+            }
+        }
+    }
+
+    private func describe(_ error: Updater.Failure) -> String {
+        switch error {
+        case .network(let message):
+            return message
+        case .malformed:
+            return L("update.error.malformed", "GitHub returned an unexpected response.")
+        case .noPackage:
+            return L("update.error.noPackage", "This release has no installer package.")
+        }
     }
 
     // MARK: автозапуск
@@ -496,7 +637,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try SMAppService.mainApp.register()
             }
         } catch {
-            showAlert(title: "Не удалось изменить автозапуск",
+            showAlert(title: L("alert.loginItemFailed", "Could not change the login item"),
                       text: error.localizedDescription, style: .warning)
         }
     }
@@ -508,7 +649,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.alertStyle = style
         alert.messageText = title
         alert.informativeText = text
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L("alert.ok", "OK"))
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }

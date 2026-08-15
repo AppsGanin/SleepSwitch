@@ -1,0 +1,5 @@
+"choice.app.title" = "SleepSwitch app";
+"choice.app.description" = "The menu bar toggle. Installs into your Applications folder.";
+
+"choice.sudoers.title" = "Passwordless toggling";
+"choice.sudoers.description" = "Adds a rule to /etc/sudoers.d/sleepswitch that lets your account run exactly two commands without a password: “pmset -a disablesleep 0” and “pmset -a disablesleep 1”. Without it macOS asks for an administrator password on every toggle. To remove it later: sudo rm /etc/sudoers.d/sleepswitch";

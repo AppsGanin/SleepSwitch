@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"></head>
+<body style="font: 13px -apple-system, sans-serif; margin: 0;">
+
+<p>SleepSwitch is a menu bar toggle that stops your MacBook from sleeping — both when you
+close the lid and when the idle timer runs out.</p>
+
+<p>This installer will do two things:</p>
+
+<ul>
+	<li><b>Install SleepSwitch.app</b> into your Applications folder and launch it —
+		the icon appears on the right side of the menu bar.</li>
+	<li><b>Add a sudo rule</b> to <code>/etc/sudoers.d/sleepswitch</code> so the mode
+		toggles without a password prompt. The rule allows your account exactly two
+		commands — <code>pmset -a disablesleep 0</code> and
+		<code>pmset -a disablesleep 1</code> — and nothing else.</li>
+</ul>
+
+<p>You can skip the second one: click «Customize» on the installation type step. macOS will
+then ask for an administrator password every time you toggle the mode.</p>
+
+<p>Requires macOS 13 or newer.</p>
+
+</body>
+</html>

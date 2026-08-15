@@ -1,0 +1,45 @@
+/* Строка состояния: подсказка на иконке и заголовок меню */
+"status.off" = "Normal mode — your Mac sleeps as configured";
+"status.on" = "Awake: lid and idle timer are ignored";
+"status.partial" = "Partial: idle sleep blocked, but the lid still sleeps";
+
+/* Меню */
+"menu.turnOn" = "Turn the mode on";
+"menu.turnOff" = "Turn the mode off";
+"menu.keepDisplay" = "Keep the screen on";
+"menu.enableAtLaunch" = "Turn the mode on at launch";
+"menu.loginItem" = "Open at login";
+"menu.installRule" = "Toggle without a password…";
+"menu.removeRule" = "Ask for the password again…";
+"menu.lockSettings" = "Screen lock settings…";
+"menu.autoUpdate" = "Check for updates automatically";
+"menu.checkUpdates" = "Check for updates…";
+"menu.quit" = "Quit SleepSwitch";
+
+/* Обновления */
+"update.available.title" = "SleepSwitch %@ is available";
+"update.available.text" = "You have version %@. Download the installer?";
+"update.download" = "Download";
+"update.notes" = "Release notes";
+"update.later" = "Later";
+"update.upToDate.title" = "You are up to date";
+"update.upToDate.text" = "SleepSwitch %@ is the latest version.";
+"update.failed.title" = "Could not check for updates";
+"update.downloadFailed.title" = "Could not download the update";
+"update.error.malformed" = "GitHub returned an unexpected response.";
+"update.error.noPackage" = "This release has no installer package.";
+
+/* Диалоги */
+"alert.ok" = "OK";
+"alert.ruleInstalled.title" = "Done";
+"alert.ruleInstalled.text" = "The mode now toggles without a password.";
+"alert.ruleInstallFailed" = "Could not install the rule";
+"alert.ruleRemoveFailed" = "Could not remove the rule";
+"alert.sleepFailed" = "Could not change the sleep setting";
+"alert.loginItemFailed" = "Could not change the login item";
+
+/* Ошибки */
+"error.badUserName" = "Unsupported account name: “%@”.";
+"error.ruleBuild" = "Could not build the rule safely.";
+"error.scriptBuild" = "Could not build the privilege request.";
+"error.unknown" = "Unknown error.";

@@ -22,6 +22,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleExecutable</key>      <string>SleepSwitch</string>
 	<key>CFBundleIconFile</key>        <string>AppIcon</string>
 	<key>CFBundlePackageType</key>     <string>APPL</string>
+	<key>CFBundleDevelopmentRegion</key> <string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ru</string>
+	</array>
 	<key>CFBundleShortVersionString</key> <string>$VERSION</string>
 	<key>CFBundleVersion</key>         <string>$VERSION</string>
 	<key>LSMinimumSystemVersion</key>  <string>13.0</string>
@@ -30,6 +36,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+"$ROOT/Tools/check-localization.sh"
+cp -R "$ROOT/Resources/"*.lproj "$APP/Contents/Resources/"
 
 echo "Рисую иконку…"
 ICONSET="$ROOT/build/AppIcon.iconset"
@@ -48,7 +57,7 @@ for arch in arm64 x86_64; do
 		-target "${arch}-apple-macos13.0" \
 		-framework AppKit -framework IOKit -framework ServiceManagement \
 		-o "$out" \
-		"$ROOT/Sources/main.swift"
+		"$ROOT/Sources/"*.swift
 	SLICES+=("$out")
 done
 

@@ -19,17 +19,18 @@
 		<line choice="sudoers"/>
 	</choices-outline>
 
+	<!-- Значения title и description — ключи из Localizable.strings в resources/<язык>.lproj. -->
 	<choice id="app"
-		title="Приложение SleepSwitch"
-		description="Переключатель в строке меню. Устанавливается в /Applications."
+		title="choice.app.title"
+		description="choice.app.description"
 		start_selected="true"
 		start_enabled="false">
 		<pkg-ref id="com.ganin.sleepswitch.app"/>
 	</choice>
 
 	<choice id="sudoers"
-		title="Переключение без пароля"
-		description="Добавляет правило в /etc/sudoers.d/sleepswitch, разрешающее вашей учётной записи выполнять ровно две команды без пароля: «pmset -a disablesleep 0» и «pmset -a disablesleep 1». Без этого macOS будет спрашивать пароль администратора при каждом переключении. Удалить позже: sudo rm /etc/sudoers.d/sleepswitch"
+		title="choice.sudoers.title"
+		description="choice.sudoers.description"
 		start_selected="true">
 		<pkg-ref id="com.ganin.sleepswitch.sudoers"/>
 	</choice>

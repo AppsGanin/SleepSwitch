@@ -1,0 +1,5 @@
+"choice.app.title" = "Приложение SleepSwitch";
+"choice.app.description" = "Переключатель в строке меню. Устанавливается в /Applications.";
+
+"choice.sudoers.title" = "Переключение без пароля";
+"choice.sudoers.description" = "Добавляет правило в /etc/sudoers.d/sleepswitch, разрешающее вашей учётной записи выполнять ровно две команды без пароля: «pmset -a disablesleep 0» и «pmset -a disablesleep 1». Без этого macOS будет спрашивать пароль администратора при каждом переключении. Удалить позже: sudo rm /etc/sudoers.d/sleepswitch";

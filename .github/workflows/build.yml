@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Тесты
+        run: ./Tools/run-tests.sh
+
       - name: Собрать установщик
         run: ./make-installer.sh
 
@@ -22,8 +25,10 @@ jobs:
           lipo -archs build/SleepSwitch.app/Contents/MacOS/SleepSwitch
           echo "Подпись:"
           codesign --verify --strict --verbose=2 build/SleepSwitch.app
-          echo "Компоненты установщика:"
-          installer -pkginfo -pkg dist/*.pkg
+          echo "Компоненты установщика, русский:"
+          installer -pkginfo -pkg dist/*.pkg -AppleLanguages '(ru)'
+          echo "Компоненты установщика, английский:"
+          installer -pkginfo -pkg dist/*.pkg -AppleLanguages '(en)'
 
       - uses: actions/upload-artifact@v4
         with:

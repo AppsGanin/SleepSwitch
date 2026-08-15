@@ -34,7 +34,10 @@ the lid propped open.
 - **Ask for the password once.** The installer sets up a narrowly scoped `sudo` rule, then
   toggling never prompts again.
 - **Nothing left behind.** Quit the app — or kill it — and the sleep ban lifts itself.
-- **One Swift file**, ~520 lines, no dependencies, no background daemon, no telemetry.
+- **Updates itself from GitHub** — checks daily, hands you the installer, never swaps
+  binaries behind your back.
+- **English and Russian**, app and installer, following your system language.
+- **Two Swift files**, no dependencies, no background daemon, no telemetry.
 - **Universal binary**, Apple Silicon and Intel.
 
 ## Install
@@ -103,6 +106,17 @@ Opt out at install time, or later from the menu — or by hand:
 sudo rm /etc/sudoers.d/sleepswitch
 ```
 
+## Updates
+
+The app asks GitHub once a day whether a newer release exists. If one does, you get an
+alert with three choices: download, read the release notes, or later. Turn the check off
+from the menu — then nothing goes over the network unless you ask.
+
+SleepSwitch does not replace itself. It downloads the `.pkg` from the release and opens it
+with the system Installer, so the upgrade goes through the same authenticated flow as the
+first install. Requests are pinned to `https` on GitHub hosts, redirects included — anything
+else is refused.
+
 ## Screen lock
 
 Sleep and screen lock are separate macOS settings, and SleepSwitch only touches sleep. If
@@ -120,12 +134,16 @@ The menu has a shortcut to the matching System Settings pane.
 ## Build from source
 
 ```bash
-./make-installer.sh   # → dist/SleepSwitch-<version>.pkg
-./install.sh          # or straight into /Applications, no installer
+./make-installer.sh          # → dist/SleepSwitch-<version>.pkg
+./install.sh                 # or straight into /Applications, no installer
+./Tools/run-tests.sh         # tests; add --network to hit the real GitHub API
 ```
 
 Xcode or the Command Line Tools is the only requirement. The app icon is drawn in code by
-[`Tools/make-icon.swift`](Tools/make-icon.swift) at build time — no binary assets in the repo.
+[`Tools/make-icon.swift`](Tools/make-icon.swift) at build time — no binary assets in the
+repo. A missing translation fails the build:
+[`Tools/check-localization.sh`](Tools/check-localization.sh) diffs the `L("…")` keys in the
+sources against every `Localizable.strings`.
 
 Releases are cut by tag:
 
@@ -135,10 +153,8 @@ git tag v1.0.1 && git push origin v1.0.1
 
 ## Requirements
 
-macOS 13 Ventura or newer. Apple Silicon and Intel.
-
-> [!NOTE]
-> The app interface and the installer are currently Russian-only.
+macOS 13 Ventura or newer. Apple Silicon and Intel. The interface follows your system
+language — English or Russian.
 
 ## Uninstall
 
