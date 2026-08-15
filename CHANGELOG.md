@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+- Removed the «Keep the screen on» checkbox. The screen now stays lit whenever the mode is
+  on, and dims normally when it is off. The switch was confusing: its only effect showed up
+  after the idle timer expired — tens of minutes later — so toggling it looked like it did
+  nothing at all.
+
 ## 1.1.0
 
 - English and Russian throughout: app menu, alerts, and the installer, following the

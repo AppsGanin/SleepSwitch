@@ -6,7 +6,6 @@
 /* Меню */
 "menu.turnOn" = "Turn the mode on";
 "menu.turnOff" = "Turn the mode off";
-"menu.keepDisplay" = "Keep the screen on";
 "menu.enableAtLaunch" = "Turn the mode on at launch";
 "menu.loginItem" = "Open at login";
 "menu.installRule" = "Toggle without a password…";

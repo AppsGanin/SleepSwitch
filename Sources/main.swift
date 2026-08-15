@@ -14,14 +14,12 @@ func L(_ key: String, _ english: String) -> String {
 // MARK: - Ключи настроек
 
 enum Defaults {
-    static let keepDisplayAwake = "keepDisplayAwake"
     static let enableAtLaunch = "enableAtLaunch"
     static let autoCheckUpdates = "autoCheckUpdates"
     static let lastUpdateCheck = "lastUpdateCheck"
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
-            keepDisplayAwake: true,
             enableAtLaunch: false,
             autoCheckUpdates: true,
         ])
@@ -30,7 +28,7 @@ enum Defaults {
 
 // MARK: - Ассершены питания (работают без root)
 
-/// Держит IOKit-ассершены: запрет сна по бездействию и (опционально) запрет гашения экрана.
+/// Держит IOKit-ассершены: запрет сна по бездействию и запрет гашения экрана.
 /// Ассершены автоматически снимаются, если процесс умрёт, — это безопасный слой.
 final class PowerAssertions {
     private var systemID: IOPMAssertionID = 0
@@ -39,13 +37,15 @@ final class PowerAssertions {
     private(set) var holdsSystem = false
     private(set) var holdsDisplay = false
 
-    func apply(active: Bool, keepDisplayAwake: Bool) {
+    /// Экран и сон включаются вместе: отдельная настройка «не гасить экран» только
+    /// путала — её эффект виден лишь через десятки минут простоя.
+    func apply(active: Bool) {
         setSystem(active)
-        setDisplay(active && keepDisplayAwake)
+        setDisplay(active)
     }
 
     func releaseAll() {
-        apply(active: false, keepDisplayAwake: false)
+        apply(active: false)
     }
 
     private func setSystem(_ wanted: Bool) {
@@ -240,11 +240,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var sigtermSource: DispatchSourceSignal?
     private var updateTimer: Timer?
 
-    private var keepDisplayAwake: Bool {
-        get { UserDefaults.standard.bool(forKey: Defaults.keepDisplayAwake) }
-        set { UserDefaults.standard.set(newValue, forKey: Defaults.keepDisplayAwake) }
-    }
-
     private var enableAtLaunch: Bool {
         get { UserDefaults.standard.bool(forKey: Defaults.enableAtLaunch) }
         set { UserDefaults.standard.set(newValue, forKey: Defaults.enableAtLaunch) }
@@ -327,7 +322,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setOn(_ wanted: Bool) {
         isOn = wanted
-        assertions.apply(active: wanted, keepDisplayAwake: keepDisplayAwake)
+        assertions.apply(active: wanted)
 
         switch SleepDisable.set(wanted) {
         case .success:
@@ -355,7 +350,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let actual = SleepDisable.isActive
         if !isOn && actual {
             isOn = true
-            assertions.apply(active: true, keepDisplayAwake: keepDisplayAwake)
+            assertions.apply(active: true)
             applyState()
         } else if isOn && !actual && !assertions.holdsSystem {
             isOn = false
@@ -366,7 +361,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyState() {
-        assertions.apply(active: isOn, keepDisplayAwake: keepDisplayAwake)
+        assertions.apply(active: isOn)
         updateAppearance()
     }
 
@@ -436,8 +431,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           #selector(menuToggle), key: "t"))
         menu.addItem(.separator())
 
-        menu.addItem(check(L("menu.keepDisplay", "Keep the screen on"),
-                           #selector(menuToggleDisplay), on: keepDisplayAwake))
         menu.addItem(check(L("menu.enableAtLaunch", "Turn the mode on at launch"),
                            #selector(menuToggleAutoEnable), on: enableAtLaunch))
         menu.addItem(check(L("menu.loginItem", "Open at login"),
@@ -480,11 +473,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: действия меню
 
     @objc private func menuToggle() { setOn(!isOn) }
-
-    @objc private func menuToggleDisplay() {
-        keepDisplayAwake.toggle()
-        applyState()
-    }
 
     @objc private func menuToggleAutoEnable() { enableAtLaunch.toggle() }
 

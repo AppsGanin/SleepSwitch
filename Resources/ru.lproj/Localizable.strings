@@ -6,7 +6,6 @@
 /* Меню */
 "menu.turnOn" = "Включить режим";
 "menu.turnOff" = "Выключить режим";
-"menu.keepDisplay" = "Не гасить экран";
 "menu.enableAtLaunch" = "Включать режим при запуске";
 "menu.loginItem" = "Запускать при входе в систему";
 "menu.installRule" = "Переключать без пароля…";

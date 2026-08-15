@@ -30,7 +30,7 @@ the lid propped open.
 
 - **Lid-close sleep off.** Shut the laptop, it keeps running.
 - **Idle sleep off.** Your idle timer is ignored while the mode is on.
-- **Screen stays lit** (optional, one checkbox).
+- **Screen stays lit** while the mode is on — no separate switch to think about.
 - **Ask for the password once.** The installer sets up a narrowly scoped `sudo` rule, then
   toggling never prompts again.
 - **Nothing left behind.** Quit the app — or kill it — and the sleep ban lifts itself.
@@ -57,7 +57,7 @@ box under **Customize** — installs the passwordless `sudo` rule.
 | Action | Result |
 | --- | --- |
 | **Left click** the icon | Toggle the mode |
-| **Right click** | Menu: display, launch, login item, `sudo` rule |
+| **Right click** | Menu: launch behaviour, login item, updates, `sudo` rule |
 
 The icon is the state:
 
