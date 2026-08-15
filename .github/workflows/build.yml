@@ -30,6 +30,49 @@ jobs:
           echo "Компоненты установщика, английский:"
           installer -pkginfo -pkg dist/*.pkg -AppleLanguages '(en)'
 
+      # Раннер — одноразовая виртуалка, поэтому пакет ставится по-настоящему.
+      # Скрипты postinstall трогают /etc/sudoers.d от root, и проверить их иначе негде.
+      - name: Установить пакет и проверить, что он сделал
+        run: |
+          set -e
+          sudo installer -pkg dist/*.pkg -target /
+
+          test -d /Applications/SleepSwitch.app
+          echo "Приложение на месте: $(defaults read /Applications/SleepSwitch.app/Contents/Info.plist CFBundleShortVersionString)"
+
+          CONSOLE_USER="$(stat -f%Su /dev/console)"
+          echo "Консольный пользователь: $CONSOLE_USER"
+
+          if [ -f /etc/sudoers.d/sleepswitch ]; then
+            echo "Правило установлено, проверяю его."
+            sudo visudo -cf /etc/sudoers.d/sleepswitch
+            PERMS="$(stat -f '%Sp %Su:%Sg' /etc/sudoers.d/sleepswitch)"
+            echo "Права: $PERMS"
+            [ "$PERMS" = "-r--r----- root:wheel" ]
+
+            # Правило обязано разрешать ровно две команды и ничего больше.
+            ALLOWED="$(sudo grep -c 'NOPASSWD' /etc/sudoers.d/sleepswitch)"
+            [ "$ALLOWED" -eq 2 ]
+            sudo grep -q "NOPASSWD: /usr/bin/pmset -a disablesleep 0\$" /etc/sudoers.d/sleepswitch
+            sudo grep -q "NOPASSWD: /usr/bin/pmset -a disablesleep 1\$" /etc/sudoers.d/sleepswitch
+
+            echo "Что правило даёт пользователю $CONSOLE_USER:"
+            sudo -l -U "$CONSOLE_USER" | grep NOPASSWD
+          else
+            # Тоже допустимый исход: postinstall молча пропускает правило, если
+            # за консолью root или не администратор. Падать тут нельзя.
+            echo "Правило не установлено — postinstall счёл пользователя неподходящим."
+          fi
+
+      - name: Проверить удаление
+        run: |
+          set -e
+          ./uninstall.sh
+          test ! -d /Applications/SleepSwitch.app
+          test ! -f /etc/sudoers.d/sleepswitch
+          test -z "$(pkgutil --pkgs | grep sleepswitch || true)"
+          echo "Удаление чистое: приложение, правило и записи об установке убраны."
+
       - uses: actions/upload-artifact@v4
         with:
           name: SleepSwitch-installer

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.2
+
+- The menu now shows which version you are running. With an app that updates itself, the
+  answer used to require Finder → Get Info.
+- A failed update check no longer counts as a check. Being offline once used to postpone
+  the next attempt by a full day.
+- CI installs the built `.pkg` for real and inspects what it did: the `sudo` rule is
+  validated with `visudo`, its mode and owner are asserted, and it must grant exactly the
+  two `pmset` commands and nothing else. Then `uninstall.sh` runs and the removal is
+  verified. These installer scripts run as root and had no test coverage at all.
+
 ## 1.1.1
 
 - Removed the «Keep the screen on» checkbox. The screen now stays lit whenever the mode is

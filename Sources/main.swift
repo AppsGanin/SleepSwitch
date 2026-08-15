@@ -454,6 +454,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           #selector(menuCheckUpdates)))
         menu.addItem(.separator())
 
+        // Версия нужна на виду: приложение умеет обновляться само, и без этой строки
+        // узнать, что у тебя стоит, можно только через «Свойства» в Finder.
+        let version = NSMenuItem(title: "SleepSwitch \(Updater.currentVersion)",
+                                 action: nil, keyEquivalent: "")
+        version.isEnabled = false
+        menu.addItem(version)
+
         menu.addItem(item(L("menu.quit", "Quit SleepSwitch"), #selector(menuQuit), key: "q"))
         return menu
     }
@@ -534,9 +541,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func checkForUpdates(quietWhenCurrent: Bool) {
-        UserDefaults.standard.set(Date(), forKey: Defaults.lastUpdateCheck)
         Updater.fetchLatest { [weak self] result in
             guard let self else { return }
+            // Отметку о проверке ставим только после удачного ответа. Иначе одна
+            // попытка без сети съедала бы сутки, и обновление нашлось бы только назавтра.
+            if case .success = result {
+                UserDefaults.standard.set(Date(), forKey: Defaults.lastUpdateCheck)
+            }
             switch result {
             case .success(let release)
                 where Updater.isNewer(release.version, than: Updater.currentVersion):
