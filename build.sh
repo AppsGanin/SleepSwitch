@@ -34,7 +34,9 @@ PLIST
 SLICES=()
 for arch in arm64 x86_64; do
 	out="$ROOT/build/SleepSwitch-$arch"
-	echo "Компилирую $arch…"
+	# Фигурные скобки обязательны: bash 3.2 в неюникодной локали иначе
+	# считает следующий за именем многобайтный символ частью имени переменной.
+	echo "Компилирую ${arch}…"
 	swiftc -O \
 		-target "${arch}-apple-macos13.0" \
 		-framework AppKit -framework IOKit -framework ServiceManagement \

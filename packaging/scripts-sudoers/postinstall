@@ -15,6 +15,22 @@ if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = "root" ]; then
 	exit 0
 fi
 
+# Короткое имя попадёт в sudoers, поэтому пропускаем только безопасные символы.
+case "$TARGET_USER" in
+	-* | *[!A-Za-z0-9._-]*)
+		echo "SleepSwitch: недопустимое имя «$TARGET_USER» — правило sudo пропущено." >&2
+		exit 0
+		;;
+esac
+
+# Правило имеет смысл только для администратора: обычный пользователь и так не может
+# менять настройки питания, и выдавать ему новые права мы не должны.
+if ! /usr/bin/dsmemberutil checkmembership -U "$TARGET_USER" -G admin 2>/dev/null |
+	/usr/bin/grep -q "is a member"; then
+	echo "SleepSwitch: «$TARGET_USER» не администратор — правило sudo пропущено." >&2
+	exit 0
+fi
+
 WORK="$(/usr/bin/mktemp -d)" || exit 0
 DRAFT="$WORK/sleepswitch"
 

@@ -128,33 +128,41 @@ enum SleepDisable {
 
     static func installPasswordlessRule() -> Result<Void, Failure> {
         let user = NSUserName()
-        let body = """
-        # Создано SleepSwitch. Разрешает переключать запрет сна без ввода пароля.
-        # Удалить: sudo rm \(sudoersPath)
-        \(user) ALL=(root) NOPASSWD: \(pmsetPath) -a disablesleep 0
-        \(user) ALL=(root) NOPASSWD: \(pmsetPath) -a disablesleep 1
-
-        """
-
-        // Черновик пишем в свою папку (а не в /tmp), чтобы никто не подменил файл
-        // между проверкой visudo и установкой.
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("SleepSwitch", isDirectory: true)
-        let draft = dir.appendingPathComponent("sleepswitch.sudoers")
-        do {
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            try body.write(to: draft, atomically: true, encoding: .utf8)
-        } catch {
-            return .failure(.failed("Не удалось подготовить файл правила: \(error.localizedDescription)"))
+        guard isSafeUserName(user) else {
+            return .failure(.failed("Недопустимое имя учётной записи: «\(user)»."))
         }
 
-        let path = draft.path
-        guard !path.contains("'") else {
-            return .failure(.failed("Недопустимый путь к домашней папке."))
+        let lines = [
+            "# Создано SleepSwitch. Разрешает переключать запрет сна без ввода пароля.",
+            "# Удалить: sudo rm \(sudoersPath)",
+            "\(user) ALL=(root) NOPASSWD: \(pmsetPath) -a disablesleep 0",
+            "\(user) ALL=(root) NOPASSWD: \(pmsetPath) -a disablesleep 1",
+        ]
+        guard lines.allSatisfy({ !$0.contains("'") }) else {
+            return .failure(.failed("Не удалось безопасно сформировать правило."))
         }
-        let command = "/usr/sbin/visudo -cf '\(path)' "
-            + "&& /usr/bin/install -m 0440 -o root -g wheel '\(path)' \(sudoersPath)"
+
+        // Файл готовится, проверяется и ставится целиком под root во временной папке
+        // с правами 0700. Промежуточного файла, доступного на запись пользователю,
+        // в цепочке нет: иначе его можно было бы подменить между visudo и install
+        // и записать в sudoers что угодно.
+        let quoted = lines.map { "'\($0)'" }.joined(separator: " ")
+        let command = "d=$(/usr/bin/mktemp -d) && "
+            + "/usr/bin/printf '%s\\n' \(quoted) > \"$d/sleepswitch\" && "
+            + "/usr/sbin/visudo -cf \"$d/sleepswitch\" && "
+            + "/usr/bin/install -m 0440 -o root -g wheel \"$d/sleepswitch\" \(sudoersPath); "
+            + "r=$?; /bin/rm -rf \"$d\"; exit $r"
         return runAsAdmin(command)
+    }
+
+    /// Имя учётной записи попадает и в sudoers, и в shell-команду, поэтому допускаем
+    /// только символы, которые macOS вообще разрешает в коротком имени.
+    private static func isSafeUserName(_ name: String) -> Bool {
+        guard !name.isEmpty, name.count <= 63, name.first != "-" else { return false }
+        return name.allSatisfy { character in
+            character.isASCII &&
+                (character.isLetter || character.isNumber || "._-".contains(character))
+        }
     }
 
     static func removePasswordlessRule() -> Result<Void, Failure> {
@@ -178,9 +186,11 @@ enum SleepDisable {
     /// Системный диалог macOS с запросом пароля администратора.
     /// Пароль вводится в окно самой системы — приложение его не видит.
     private static func runAsAdmin(_ shellCommand: String) -> Result<Void, Failure> {
+        // Порядок важен: сначала обратные слэши, иначе экранирование съест само себя.
         let escaped = shellCommand
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
         let source = "do shell script \"\(escaped)\" with administrator privileges"
 
         var errorInfo: NSDictionary?
@@ -210,6 +220,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isOn = false
     /// Запрет сна на уровне системы включили мы — значит мы обязаны его снять.
     private var weDisabledSleep = false
+    private var isShowingMenu = false
+    private var currentSymbol: String?
+    private var sigtermSource: DispatchSourceSignal?
 
     private var keepDisplayAwake: Bool {
         get { UserDefaults.standard.bool(forKey: Defaults.keepDisplayAwake) }
@@ -247,21 +260,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             self?.syncWithSystem()
         }
+
+        installSignalHandler()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        cleanUp()
+        cleanUp(mayAskPassword: true)
     }
 
     @objc private func systemWillPowerOff() {
-        cleanUp()
+        // Во время выключения нельзя показывать модальный диалог — он заблокирует
+        // завершение сеанса. Пробуем только тихий путь.
+        cleanUp(mayAskPassword: false)
     }
 
-    private func cleanUp() {
+    /// Приложение можно погасить и мимо AppKit — например, установщик делает pkill
+    /// перед обновлением. Без этого обработчика системный запрет сна остался бы висеть.
+    private func installSignalHandler() {
+        signal(SIGTERM, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        source.setEventHandler { [weak self] in
+            self?.cleanUp(mayAskPassword: false)
+            NSApp.terminate(nil)
+        }
+        source.resume()
+        sigtermSource = source
+    }
+
+    private func cleanUp(mayAskPassword: Bool) {
         assertions.releaseAll()
-        if weDisabledSleep {
-            SleepDisable.resetQuietly()
-            weDisabledSleep = false
+        guard weDisabledSleep else { return }
+        weDisabledSleep = false
+
+        SleepDisable.resetQuietly()
+        // Тихий путь работает только с правилом sudo. Без него запрет сна переживёт
+        // выход из приложения, поэтому спрашиваем пароль — иначе Mac останется
+        // навсегда бодрым, а переключателя на экране уже не будет.
+        if mayAskPassword && SleepDisable.isActive {
+            _ = SleepDisable.set(false)
         }
     }
 
@@ -275,12 +311,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .success:
             weDisabledSleep = wanted
         case .failure(.cancelled):
-            // Пользователь отказался вводить пароль: остаёмся в частичном режиме.
+            // Пользователь отказался вводить пароль: при включении остаёмся
+            // в частичном режиме, при выключении — см. сверку ниже.
             break
         case .failure(.failed(let message)):
             showAlert(title: "Не удалось изменить настройку сна",
                       text: message,
                       style: .warning)
+        }
+
+        // Выключить не вышло, а системный запрет сна остался — значит режим на самом
+        // деле не выключен. Показываем правду сразу, не дожидаясь сверки по таймеру.
+        if !wanted && SleepDisable.isActive {
+            isOn = true
         }
         applyState()
     }
@@ -317,6 +360,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             symbol = "exclamationmark.triangle.fill"
         }
+        // Сверка идёт раз в пять секунд — не пересобираем картинку, если ничего не менялось.
+        guard symbol != currentSymbol else { return }
+        currentSymbol = symbol
+
         let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "SleepSwitch")
         image?.isTemplate = true
         button.image = image
@@ -340,6 +387,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showMenu() {
+        // performClick повторно дёргает action кнопки — без флага можно уйти в рекурсию.
+        guard !isShowingMenu else { return }
+        isShowingMenu = true
+        defer { isShowingMenu = false }
+
         syncWithSystem()
         statusItem.menu = buildMenu()
         statusItem.button?.performClick(nil)
