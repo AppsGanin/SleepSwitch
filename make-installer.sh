@@ -1,6 +1,6 @@
 #!/bin/bash
-# Собирает установщик dist/SleepSwitch-<версия>.pkg.
-# Версию можно переопределить: VERSION=1.2.3 ./make-installer.sh
+# Builds the installer at dist/SleepSwitch-<version>.pkg.
+# Override the version with: VERSION=1.2.3 ./make-installer.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -18,7 +18,7 @@ rm -rf "$STAGE" "$PARTS"
 mkdir -p "$STAGE" "$PARTS" "$DIST"
 cp -R "$ROOT/build/SleepSwitch.app" "$STAGE/SleepSwitch.app"
 
-echo "Собираю компонент с приложением…"
+echo "Building the app component…"
 pkgbuild \
 	--root "$STAGE" \
 	--install-location /Applications \
@@ -27,7 +27,7 @@ pkgbuild \
 	--scripts "$ROOT/packaging/scripts-app" \
 	"$PARTS/app.pkg" >/dev/null
 
-echo "Собираю компонент с правилом sudo…"
+echo "Building the sudo rule component…"
 pkgbuild \
 	--nopayload \
 	--identifier com.ganin.sleepswitch.sudoers \
@@ -37,15 +37,15 @@ pkgbuild \
 
 sed "s/__VERSION__/$VERSION/g" "$ROOT/packaging/distribution.xml.in" > "$ROOT/build/distribution.xml"
 
-echo "Собираю установщик…"
+echo "Building the installer…"
 productbuild \
 	--distribution "$ROOT/build/distribution.xml" \
 	--package-path "$PARTS" \
 	--resources "$ROOT/packaging/resources" \
 	"$PKG" >/dev/null
 
-# Staging-копия приложения и компоненты пакета больше не нужны, а лишний бандл
-# на диске потом всплывает дубликатом в поиске.
+# The staging copy and the component packages are no longer needed, and a spare bundle
+# lying around later shows up as a duplicate in Spotlight.
 rm -rf "$STAGE" "$PARTS"
 
-echo "Готово: $PKG"
+echo "Done: $PKG"

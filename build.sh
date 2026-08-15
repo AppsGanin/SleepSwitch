@@ -1,6 +1,6 @@
 #!/bin/bash
-# Собирает SleepSwitch.app в ./build. Нужен только установленный Xcode / CLT.
-# Версию можно переопределить: VERSION=1.2.3 ./build.sh
+# Builds SleepSwitch.app into ./build. Xcode or the Command Line Tools is all it needs.
+# Override the version with: VERSION=1.2.3 ./build.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -40,19 +40,19 @@ PLIST
 "$ROOT/Tools/check-localization.sh"
 cp -R "$ROOT/Resources/"*.lproj "$APP/Contents/Resources/"
 
-echo "Рисую иконку…"
+echo "Drawing the icon…"
 ICONSET="$ROOT/build/AppIcon.iconset"
 swift "$ROOT/Tools/make-icon.swift" "$ICONSET" >/dev/null
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$ICONSET"
 
-# Universal binary: установщик должен ставиться и на Apple Silicon, и на Intel.
+# Universal binary: the installer has to work on Apple Silicon and Intel alike.
 SLICES=()
 for arch in arm64 x86_64; do
 	out="$ROOT/build/SleepSwitch-$arch"
-	# Фигурные скобки обязательны: bash 3.2 в неюникодной локали иначе
-	# считает следующий за именем многобайтный символ частью имени переменной.
-	echo "Компилирую ${arch}…"
+	# The braces are required: in a non-UTF-8 locale bash 3.2 would otherwise read the
+	# multibyte character that follows the name as part of the variable name.
+	echo "Compiling ${arch}…"
 	swiftc -O \
 		-target "${arch}-apple-macos13.0" \
 		-framework AppKit -framework IOKit -framework ServiceManagement \
@@ -64,11 +64,11 @@ done
 lipo -create "${SLICES[@]}" -output "$APP/Contents/MacOS/SleepSwitch"
 rm -f "${SLICES[@]}"
 
-# Чистим расширенные атрибуты, иначе pkgbuild тащит в пакет мусорные ._-файлы.
+# Strip extended attributes, or pkgbuild drags junk ._ entries into the package.
 xattr -cr "$APP"
 
-# Ad-hoc подпись: без неё macOS не даёт зарегистрировать приложение в автозапуске.
+# Ad-hoc signature: without one macOS refuses to register the app as a login item.
 codesign --force --sign - --identifier "$BUNDLE_ID" "$APP"
 codesign --verify --strict "$APP"
 
-echo "Готово: $APP ($VERSION, $(lipo -archs "$APP/Contents/MacOS/SleepSwitch"))"
+echo "Done: $APP ($VERSION, $(lipo -archs "$APP/Contents/MacOS/SleepSwitch"))"

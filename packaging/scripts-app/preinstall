@@ -1,4 +1,4 @@
 #!/bin/bash
-# Закрываем запущенную копию, чтобы бандл можно было заменить целиком.
+# Stop the running copy so the bundle can be replaced wholesale.
 /usr/bin/pkill -x SleepSwitch 2>/dev/null || true
 exit 0

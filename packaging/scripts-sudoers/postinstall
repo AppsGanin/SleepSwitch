@@ -1,6 +1,6 @@
 #!/bin/bash
-# Ставит правило sudo, разрешающее ровно две команды pmset без пароля.
-# Любая неудача здесь не должна валить установку самого приложения — всегда exit 0.
+# Installs the sudo rule that allows exactly two pmset commands without a password.
+# Nothing here may fail the installation of the app itself — always exit 0.
 set -u
 
 SUDOERS="/etc/sudoers.d/sleepswitch"
@@ -11,23 +11,23 @@ if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = "root" ]; then
 	TARGET_USER="${USER:-}"
 fi
 if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = "root" ]; then
-	echo "SleepSwitch: не удалось определить пользователя — правило sudo пропущено." >&2
+	echo "SleepSwitch: could not tell who is installing — sudo rule skipped." >&2
 	exit 0
 fi
 
-# Короткое имя попадёт в sudoers, поэтому пропускаем только безопасные символы.
+# The short name goes straight into sudoers, so only safe characters get through.
 case "$TARGET_USER" in
 	-* | *[!A-Za-z0-9._-]*)
-		echo "SleepSwitch: недопустимое имя «$TARGET_USER» — правило sudo пропущено." >&2
+		echo "SleepSwitch: unsupported name “$TARGET_USER” — sudo rule skipped." >&2
 		exit 0
 		;;
 esac
 
-# Правило имеет смысл только для администратора: обычный пользователь и так не может
-# менять настройки питания, и выдавать ему новые права мы не должны.
+# The rule only makes sense for an administrator: a standard user cannot change power
+# settings anyway, and handing them new rights is not ours to do.
 if ! /usr/bin/dsmemberutil checkmembership -U "$TARGET_USER" -G admin 2>/dev/null |
 	/usr/bin/grep -q "is a member"; then
-	echo "SleepSwitch: «$TARGET_USER» не администратор — правило sudo пропущено." >&2
+	echo "SleepSwitch: “$TARGET_USER” is not an administrator — sudo rule skipped." >&2
 	exit 0
 fi
 
@@ -35,18 +35,18 @@ WORK="$(/usr/bin/mktemp -d)" || exit 0
 DRAFT="$WORK/sleepswitch"
 
 /bin/cat > "$DRAFT" <<EOF
-# Создано установщиком SleepSwitch.
-# Разрешает переключать запрет сна без ввода пароля — и ничего больше.
-# Удалить: sudo rm $SUDOERS
+# Installed by SleepSwitch.
+# Allows toggling the sleep ban without a password — and nothing else.
+# Remove with: sudo rm $SUDOERS
 $TARGET_USER ALL=(root) NOPASSWD: $PMSET -a disablesleep 0
 $TARGET_USER ALL=(root) NOPASSWD: $PMSET -a disablesleep 1
 EOF
 
 if /usr/sbin/visudo -cf "$DRAFT" >/dev/null 2>&1; then
 	/usr/bin/install -m 0440 -o root -g wheel "$DRAFT" "$SUDOERS"
-	echo "SleepSwitch: правило sudo установлено для пользователя $TARGET_USER."
+	echo "SleepSwitch: sudo rule installed for $TARGET_USER."
 else
-	echo "SleepSwitch: правило не прошло проверку visudo — пропущено." >&2
+	echo "SleepSwitch: the rule failed the visudo check — skipped." >&2
 fi
 
 /bin/rm -rf "$WORK"

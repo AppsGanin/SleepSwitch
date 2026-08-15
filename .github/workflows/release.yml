@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Тег релиза, например v1.0.0'
+        description: 'Release tag, for example v1.0.0'
         required: true
 
 permissions:
@@ -18,27 +18,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Определить версию
+      - name: Resolve the version
         id: v
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
           echo "tag=$TAG"            >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}"    >> "$GITHUB_OUTPUT"
 
-      - name: Собрать установщик
+      - name: Build the installer
         env:
           VERSION: ${{ steps.v.outputs.version }}
         run: ./make-installer.sh
 
-      - name: Упаковать .app отдельно
+      - name: Zip the .app on its own
         run: |
           ditto -c -k --keepParent build/SleepSwitch.app \
             "dist/SleepSwitch-${{ steps.v.outputs.version }}.zip"
 
-      - name: Написать описание релиза
+      - name: Write the release notes
         run: ./Tools/release-notes.sh "${{ steps.v.outputs.version }}" > release-notes.md
 
-      - name: Создать релиз
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

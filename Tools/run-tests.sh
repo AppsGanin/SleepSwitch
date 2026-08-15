@@ -1,6 +1,6 @@
 #!/bin/bash
-# Прогоняет тесты. С --network дополнительно ходит на GitHub за настоящим релизом.
-# swiftc требует, чтобы файл с кодом верхнего уровня назывался main.swift, — отсюда копия.
+# Runs the test suite. With --network it also queries the real GitHub API.
+# swiftc insists the file carrying top-level code be named main.swift, hence the copy.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -1,12 +1,12 @@
 #!/bin/bash
-# Печатает описание релиза для указанной версии: раздел из CHANGELOG плюс постоянная
-# часть на английском и русском. Используется и workflow-ом, и для правки старых релизов,
-# чтобы описание везде было одинаковым.
+# Prints the release notes for a version: its CHANGELOG section followed by the standing
+# text in English and Russian. Used by the release workflow and for rewriting older
+# releases, so every release reads the same.
 #   ./Tools/release-notes.sh 1.1.1
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${1:?нужна версия, например 1.1.1}"
+VERSION="${1:?a version is required, for example 1.1.1}"
 
 CHANGES="$(awk -v v="## $VERSION" '
 	$0 == v { inside = 1; next }
@@ -17,10 +17,10 @@ CHANGES="$(awk -v v="## $VERSION" '
 if [ -n "$CHANGES" ]; then
 	printf '## What changed\n\n%s\n\n' "$CHANGES"
 else
-	echo "CHANGELOG не содержит раздела для $VERSION — описание без списка изменений." >&2
+	echo "CHANGELOG has no section for $VERSION — notes will omit the change list." >&2
 fi
 
-# Двуязычным интерфейс стал в 1.1.0; для более старых релизов писать об этом нельзя.
+# The interface became bilingual in 1.1.0; older releases must not claim otherwise.
 if [ "$(printf '%s\n1.1.0\n' "$VERSION" | sort -V | head -1)" = "1.1.0" ]; then
 	EN_LANG=" English and Russian."
 	RU_LANG=" Русский и английский."

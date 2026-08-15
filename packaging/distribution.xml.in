@@ -19,7 +19,7 @@
 		<line choice="sudoers"/>
 	</choices-outline>
 
-	<!-- Значения title и description — ключи из Localizable.strings в resources/<язык>.lproj. -->
+	<!-- title and description are keys looked up in resources/<language>.lproj/Localizable.strings. -->
 	<choice id="app"
 		title="choice.app.title"
 		description="choice.app.description"

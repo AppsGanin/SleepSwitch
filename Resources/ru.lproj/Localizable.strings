@@ -1,9 +1,9 @@
-/* Строка состояния: подсказка на иконке и заголовок меню */
+/* Status line: the icon tooltip and the menu header */
 "status.off" = "Обычный режим — Mac засыпает как настроено";
 "status.on" = "Не спит: крышка и бездействие игнорируются";
 "status.partial" = "Частично: сон по бездействию запрещён, но крышка усыпит Mac";
 
-/* Меню */
+/* Menu */
 "menu.turnOn" = "Включить режим";
 "menu.turnOff" = "Выключить режим";
 "menu.enableAtLaunch" = "Включать режим при запуске";
@@ -15,7 +15,7 @@
 "menu.checkUpdates" = "Проверить обновления…";
 "menu.quit" = "Выйти из SleepSwitch";
 
-/* Обновления */
+/* Updates */
 "update.available.title" = "Доступна версия %@";
 "update.available.text" = "У вас версия %@. Скачать установщик?";
 "update.download" = "Скачать";
@@ -28,7 +28,7 @@
 "update.error.malformed" = "GitHub вернул неожиданный ответ.";
 "update.error.noPackage" = "В этом релизе нет пакета установщика.";
 
-/* Диалоги */
+/* Dialogs */
 "alert.ok" = "ОК";
 "alert.ruleInstalled.title" = "Готово";
 "alert.ruleInstalled.text" = "Теперь режим переключается без пароля.";
@@ -37,8 +37,15 @@
 "alert.sleepFailed" = "Не удалось изменить настройку сна";
 "alert.loginItemFailed" = "Не удалось изменить автозапуск";
 
-/* Ошибки */
+/* Errors */
 "error.badUserName" = "Недопустимое имя учётной записи: «%@».";
 "error.ruleBuild" = "Не удалось безопасно сформировать правило.";
 "error.scriptBuild" = "Не удалось собрать запрос прав.";
 "error.unknown" = "Неизвестная ошибка.";
+
+/* Updates and turn-on-at-launch */
+"update.skip" = "Пропустить эту версию";
+"alert.autoEnable.title" = "Режим будет включаться только частично";
+"alert.autoEnable.text" = "Запрет сна при закрытии крышки требует прав администратора. Без правила sudo SleepSwitch не станет спрашивать пароль при каждом входе в систему — вместо этого он запустится в частичном режиме, где сон по бездействию запрещён, а крышка всё ещё усыпляет Mac.";
+"alert.autoEnable.install" = "Настроить без пароля…";
+"alert.autoEnable.keep" = "Оставить как есть";

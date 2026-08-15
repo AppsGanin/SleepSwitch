@@ -1,6 +1,6 @@
 #!/bin/bash
-# Сверяет ключи L("...") из исходника со всеми .strings.
-# Забытый перевод должен ломать сборку, а не всплывать у пользователя английской строкой.
+# Diffs the L("…") keys used in the sources against every Localizable.strings.
+# A forgotten translation should break the build, not surface as stray English later.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,27 +12,27 @@ grep -ho 'L("[^"]*"' "$ROOT/Sources/"*.swift |
 
 status=0
 for file in "$ROOT/Resources/"*.lproj/Localizable.strings; do
-	lang="$(basename "$(dirname "$file")" .lproj)"
+	language="$(basename "$(dirname "$file")" .lproj)"
 	plutil -lint "$file" > /dev/null
 
 	grep -o '^"[^"]*"' "$file" | tr -d '"' | sort -u > "$WORK/have"
 
 	comm -23 "$WORK/used" "$WORK/have" > "$WORK/missing"
-	comm -13 "$WORK/used" "$WORK/have" > "$WORK/extra"
+	comm -13 "$WORK/used" "$WORK/have" > "$WORK/unused"
 
 	if [ -s "$WORK/missing" ]; then
-		echo "Локализация $lang: нет перевода для ключей:" >&2
+		echo "Localization $language: no translation for these keys:" >&2
 		sed 's/^/  /' "$WORK/missing" >&2
 		status=1
 	fi
-	if [ -s "$WORK/extra" ]; then
-		echo "Локализация $lang: лишние ключи, в коде не используются:" >&2
-		sed 's/^/  /' "$WORK/extra" >&2
+	if [ -s "$WORK/unused" ]; then
+		echo "Localization $language: keys nothing in the sources asks for:" >&2
+		sed 's/^/  /' "$WORK/unused" >&2
 		status=1
 	fi
 done
 
 if [ "$status" -eq 0 ]; then
-	echo "Локализация: $(wc -l < "$WORK/used" | tr -d ' ') ключей, все языки на месте."
+	echo "Localization: $(wc -l < "$WORK/used" | tr -d ' ') keys, every language complete."
 fi
 exit "$status"

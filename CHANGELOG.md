@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0
+
+- A background update now arrives as a system notification with **Download** and **Skip
+  this version**, instead of a modal dialog thrown over whatever you were doing. A check
+  you start from the menu still answers in a window — you are waiting for that one.
+- Turning the mode on at launch no longer means a password dialog at every login. Without
+  the sudo rule it comes up in partial mode instead, and ticking the checkbox now explains
+  that and offers to set the rule up.
+- State is re-read every 30 seconds rather than every 5, plus on wake and whenever the menu
+  opens. macOS publishes no notification for this setting — the general IOKit interest
+  notification on IOPMrootDomain does not fire for it and IOPMLib exposes nothing public —
+  so polling stays, just far less of it.
+- The sources are split by responsibility instead of living in one file, and all code,
+  comments and script output are English.
+
 ## 1.1.2
 
 - The menu now shows which version you are running. With an app that updates itself, the

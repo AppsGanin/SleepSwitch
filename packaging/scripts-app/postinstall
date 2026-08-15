@@ -1,5 +1,5 @@
 #!/bin/bash
-# Запускаем приложение от имени того, кто сидит за компьютером, а не от root.
+# Launch the app as whoever is sitting at the machine, not as root.
 APP="/Applications/SleepSwitch.app"
 
 CONSOLE_USER="$(/usr/bin/stat -f%Su /dev/console 2>/dev/null)"

@@ -108,9 +108,11 @@ sudo rm /etc/sudoers.d/sleepswitch
 
 ## Updates
 
-The app asks GitHub once a day whether a newer release exists. If one does, you get an
-alert with three choices: download, read the release notes, or later. Turn the check off
-from the menu — then nothing goes over the network unless you ask.
+The app asks GitHub once a day whether a newer release exists. If one does, a system
+notification offers to download it or to skip that version for good — nothing pops a modal
+dialog over whatever you were doing. A check you start yourself from the menu answers in a
+window instead, since you are standing there waiting for it. Turn the check off from the
+menu and nothing goes over the network unless you ask.
 
 SleepSwitch does not replace itself. It downloads the `.pkg` from the release and opens it
 with the system Installer, so the upgrade goes through the same authenticated flow as the

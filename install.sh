@@ -1,5 +1,5 @@
 #!/bin/bash
-# Собирает приложение, кладёт его в /Applications и запускает.
+# Builds the app, drops it into /Applications and launches it.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -8,29 +8,29 @@ DEST="/Applications/SleepSwitch.app"
 "$ROOT/build.sh"
 
 if pgrep -x SleepSwitch >/dev/null; then
-	echo "Останавливаю запущенную копию…"
+	echo "Stopping the running copy…"
 	pkill -x SleepSwitch || true
 	sleep 1
 fi
 
-# Если раньше ставили из .pkg, бандл принадлежит root, и обычным rm его не снести:
-# внутренние папки принадлежат root и закрыты на запись. Тогда идём через sudo.
+# After an install from the .pkg the bundle belongs to root and a plain rm cannot
+# remove it: the inner directories are root-owned and not writable. Hence sudo.
 SUDO=""
 if [ -e "$DEST" ] && [ ! -w "$DEST/Contents" ]; then
-	echo "В /Applications лежит копия, установленная пакетом (владелец root)."
-	echo "Для замены нужен пароль администратора."
+	echo "/Applications holds a copy installed from the package (owned by root)."
+	echo "Replacing it needs an administrator password."
 	SUDO="sudo"
 fi
 
 $SUDO rm -rf "$DEST"
 $SUDO cp -R "$ROOT/build/SleepSwitch.app" "$DEST"
-echo "Установлено: $DEST"
+echo "Installed: $DEST"
 
 if [ -n "$SUDO" ]; then
-	# После sudo cp бандл остался бы root-only; возвращаем владельца, чтобы
-	# следующая установка обошлась без пароля.
+	# After sudo cp the bundle would stay root-only; hand it back so the next
+	# install needs no password.
 	sudo chown -R "$(id -u):$(id -g)" "$DEST"
 fi
 
 open "$DEST"
-echo "Иконка появилась в строке меню справа."
+echo "The icon is now on the right-hand side of the menu bar."

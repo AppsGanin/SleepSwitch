@@ -1,9 +1,9 @@
-/* Строка состояния: подсказка на иконке и заголовок меню */
+/* Status line: the icon tooltip and the menu header */
 "status.off" = "Normal mode — your Mac sleeps as configured";
 "status.on" = "Awake: lid and idle timer are ignored";
 "status.partial" = "Partial: idle sleep blocked, but the lid still sleeps";
 
-/* Меню */
+/* Menu */
 "menu.turnOn" = "Turn the mode on";
 "menu.turnOff" = "Turn the mode off";
 "menu.enableAtLaunch" = "Turn the mode on at launch";
@@ -15,7 +15,7 @@
 "menu.checkUpdates" = "Check for updates…";
 "menu.quit" = "Quit SleepSwitch";
 
-/* Обновления */
+/* Updates */
 "update.available.title" = "SleepSwitch %@ is available";
 "update.available.text" = "You have version %@. Download the installer?";
 "update.download" = "Download";
@@ -28,7 +28,7 @@
 "update.error.malformed" = "GitHub returned an unexpected response.";
 "update.error.noPackage" = "This release has no installer package.";
 
-/* Диалоги */
+/* Dialogs */
 "alert.ok" = "OK";
 "alert.ruleInstalled.title" = "Done";
 "alert.ruleInstalled.text" = "The mode now toggles without a password.";
@@ -37,8 +37,15 @@
 "alert.sleepFailed" = "Could not change the sleep setting";
 "alert.loginItemFailed" = "Could not change the login item";
 
-/* Ошибки */
+/* Errors */
 "error.badUserName" = "Unsupported account name: “%@”.";
 "error.ruleBuild" = "Could not build the rule safely.";
 "error.scriptBuild" = "Could not build the privilege request.";
 "error.unknown" = "Unknown error.";
+
+/* Updates and turn-on-at-launch */
+"update.skip" = "Skip this version";
+"alert.autoEnable.title" = "The mode will only turn on partially";
+"alert.autoEnable.text" = "Blocking lid-close sleep needs administrator rights. Without the sudo rule SleepSwitch will not ask for a password at every login — it will start in partial mode instead, where idle sleep is blocked but closing the lid still puts your Mac to sleep.";
+"alert.autoEnable.install" = "Set up passwordless toggling…";
+"alert.autoEnable.keep" = "Leave it as is";
