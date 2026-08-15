@@ -138,6 +138,12 @@ sysadminctl -screenLock status                 # проверить
 ./Tools/run-tests.sh         # тесты; с --network ходит на настоящий GitHub
 ```
 
+> [!NOTE]
+> После локальной сборки остаётся `build/SleepSwitch.app`, и Spotlight его индексирует —
+> в поиске приложение начинает двоиться рядом с установленной копией. Лечится
+> `rm -rf build dist`. Файл `.metadata_never_index` тут не помогает: для обычных
+> подпапок Spotlight его игнорирует.
+
 Нужен только Xcode или Command Line Tools. Иконка рисуется кодом
 [`Tools/make-icon.swift`](Tools/make-icon.swift) во время сборки — бинарных ассетов в
 репозитории нет. Забытый перевод ломает сборку:

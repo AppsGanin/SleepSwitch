@@ -139,6 +139,12 @@ The menu has a shortcut to the matching System Settings pane.
 ./Tools/run-tests.sh         # tests; add --network to hit the real GitHub API
 ```
 
+> [!NOTE]
+> A local build leaves `build/SleepSwitch.app`, and Spotlight indexes it — so the app
+> shows up twice in search next to the installed copy. `rm -rf build dist` clears it.
+> `.metadata_never_index` does not help here; Spotlight ignores it for ordinary
+> subfolders.
+
 Xcode or the Command Line Tools is the only requirement. The app icon is drawn in code by
 [`Tools/make-icon.swift`](Tools/make-icon.swift) at build time — no binary assets in the
 repo. A missing translation fails the build:

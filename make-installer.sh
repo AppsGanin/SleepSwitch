@@ -44,4 +44,8 @@ productbuild \
 	--resources "$ROOT/packaging/resources" \
 	"$PKG" >/dev/null
 
+# Staging-копия приложения и компоненты пакета больше не нужны, а лишний бандл
+# на диске потом всплывает дубликатом в поиске.
+rm -rf "$STAGE" "$PARTS"
+
 echo "Готово: $PKG"
