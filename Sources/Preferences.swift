@@ -9,6 +9,8 @@ enum Preferences {
         static let lastUpdateCheck = "lastUpdateCheck"
         static let skippedVersion = "skippedVersion"
         static let announcedVersion = "announcedVersion"
+        static let batteryFloor = "batteryFloor"
+        static let onlyOnPower = "onlyOnPower"
     }
 
     private static let store = UserDefaults.standard
@@ -17,7 +19,23 @@ enum Preferences {
         store.register(defaults: [
             Key.enableAtLaunch: false,
             Key.autoCheckUpdates: true,
+            // On by default: the failure this guards against — a Mac cooking in a closed
+            // bag until the battery is flat — is worse than an unexpected switch off.
+            Key.batteryFloor: 20,
+            Key.onlyOnPower: false,
         ])
+    }
+
+    /// Battery percentage at which the mode switches itself off. Zero disables the floor.
+    static var batteryFloor: Int {
+        get { store.integer(forKey: Key.batteryFloor) }
+        set { store.set(newValue, forKey: Key.batteryFloor) }
+    }
+
+    /// Drop the mode as soon as the power adapter is unplugged.
+    static var onlyOnPower: Bool {
+        get { store.bool(forKey: Key.onlyOnPower) }
+        set { store.set(newValue, forKey: Key.onlyOnPower) }
     }
 
     /// Turn the mode on as soon as the app starts.

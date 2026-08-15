@@ -49,3 +49,12 @@
 "alert.autoEnable.text" = "Запрет сна при закрытии крышки требует прав администратора. Без правила sudo SleepSwitch не станет спрашивать пароль при каждом входе в систему — вместо этого он запустится в частичном режиме, где сон по бездействию запрещён, а крышка всё ещё усыпляет Mac.";
 "alert.autoEnable.install" = "Настроить без пароля…";
 "alert.autoEnable.keep" = "Оставить как есть";
+
+/* Battery guard */
+"menu.batteryFloor" = "Выключать при низком заряде";
+"menu.batteryFloor.never" = "Никогда";
+"menu.batteryFloor.at" = "На %d%%";
+"menu.onlyOnPower" = "Не спать только от сети";
+"notify.turnedOff" = "SleepSwitch выключил режим";
+"notify.unplugged" = "Отключили питание от сети. Mac снова засыпает как настроено.";
+"notify.lowBattery" = "Заряд упал до %d%%. Mac снова засыпает как настроено.";

@@ -18,6 +18,8 @@ swiftc -o "$WORK/tests" \
 	"$ROOT/Sources/PowerAssertions.swift" \
 	"$ROOT/Sources/SystemSleepBan.swift" \
 	"$ROOT/Sources/SleepMode.swift" \
+	"$ROOT/Sources/PowerSource.swift" \
+	"$ROOT/Sources/BatteryGuard.swift" \
 	"$ROOT/Sources/Updater.swift" \
 	"$ROOT/Tools/tests/"*.swift
 

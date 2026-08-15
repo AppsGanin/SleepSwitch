@@ -33,6 +33,8 @@ the lid propped open.
 - **Screen stays lit** while the mode is on — no separate switch to think about.
 - **Ask for the password once.** The installer sets up a narrowly scoped `sudo` rule, then
   toggling never prompts again.
+- **Won't flatten your battery.** The mode switches itself off below a charge you pick, and
+  optionally the moment you unplug.
 - **Nothing left behind.** Quit the app — or kill it — and the sleep ban lifts itself.
 - **Updates itself from GitHub** — checks daily, hands you the installer, never swaps
   binaries behind your back.
@@ -105,6 +107,17 @@ Opt out at install time, or later from the menu — or by hand:
 ```bash
 sudo rm /etc/sudoers.d/sleepswitch
 ```
+
+## Battery guard
+
+Keeping a Mac awake makes one mistake easy: switch the mode on, close the lid, drop the
+laptop in a bag, and it runs hot in there until the battery is flat. So the mode switches
+itself off once the battery falls to a threshold you choose — 20% out of the box — and, if
+you ask it to, the moment the power adapter is unplugged. Both settings sit in the menu, and
+a notification tells you which of the two fired.
+
+Neither fires on a desktop Mac, nor when the system reports no usable battery reading:
+switching the mode off for a reason the app cannot state would be worse than leaving it be.
 
 ## Updates
 

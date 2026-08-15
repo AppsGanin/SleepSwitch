@@ -12,12 +12,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let mode = SleepMode()
     private let updates = UpdateCoordinator()
+    private let powerSource = PowerSource()
 
     private var statusItem: NSStatusItem!
     private var syncTimer: Timer?
     private var sigtermSource: DispatchSourceSignal?
     private var isShowingMenu = false
     private var currentSymbol: String?
+
+    /// Set once the battery guard has acted, so a mode it could not fully switch off does
+    /// not produce the same notification on every power event.
+    private var batteryGuardTripped = false
 
     // MARK: - Lifecycle
 
@@ -49,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.syncWithSystem()
         }
         updates.start()
+        powerSource.startObserving { [weak self] in self?.checkBattery() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -102,6 +108,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func syncWithSystem() {
         mode.syncWithSystem()
         refreshAppearance()
+        checkBattery()
+    }
+
+    /// Guards against the one mistake this app makes easy: mode on, lid shut, Mac in a bag,
+    /// running hot until the battery is flat.
+    private func checkBattery() {
+        let verdict = BatteryGuard.verdict(for: PowerSource.current,
+                                           onlyOnPower: Preferences.onlyOnPower,
+                                           floor: Preferences.batteryFloor)
+
+        guard mode.isOn, verdict != .keepRunning else {
+            batteryGuardTripped = false
+            return
+        }
+        guard !batteryGuardTripped else { return }
+        batteryGuardTripped = true
+
+        apply(mode.set(false))
+
+        let body: String
+        switch verdict {
+        case .unplugged:
+            body = L("notify.unplugged",
+                     "The power adapter was unplugged. Your Mac sleeps as configured again.")
+        case .lowBattery(let percentage):
+            body = String(format: L("notify.lowBattery",
+                                    "The battery is down to %d%%. Your Mac sleeps as configured again."),
+                          percentage)
+        case .keepRunning:
+            return
+        }
+        Notifier.postIfAllowed(title: L("notify.turnedOff", "SleepSwitch turned the mode off"),
+                               body: body,
+                               identifier: "battery-guard")
     }
 
     // MARK: - Appearance
@@ -167,6 +207,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             #selector(menuToggle), key: "t"))
         menu.addItem(.separator())
 
+        menu.addItem(batteryFloorItem())
+        menu.addItem(checkbox(L("menu.onlyOnPower", "Keep awake only on power"),
+                              #selector(menuToggleOnlyOnPower),
+                              isOn: Preferences.onlyOnPower))
+        menu.addItem(.separator())
+
         menu.addItem(checkbox(L("menu.enableAtLaunch", "Turn the mode on at launch"),
                               #selector(menuToggleEnableAtLaunch),
                               isOn: Preferences.enableAtLaunch))
@@ -200,6 +246,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
+    private func batteryFloorItem() -> NSMenuItem {
+        let item = NSMenuItem(title: L("menu.batteryFloor", "Turn off on low battery"),
+                              action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        for floor in BatteryGuard.offeredFloors {
+            let title = floor == 0
+                ? L("menu.batteryFloor.never", "Never")
+                : String(format: L("menu.batteryFloor.at", "At %d%%"), floor)
+            let entry = NSMenuItem(title: title,
+                                   action: #selector(menuSetBatteryFloor(_:)),
+                                   keyEquivalent: "")
+            entry.target = self
+            entry.tag = floor
+            entry.state = Preferences.batteryFloor == floor ? .on : .off
+            submenu.addItem(entry)
+        }
+        item.submenu = submenu
+        return item
+    }
+
     private func label(_ title: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.isEnabled = false
@@ -222,6 +288,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuToggle() {
         toggleMode()
+    }
+
+    @objc private func menuSetBatteryFloor(_ sender: NSMenuItem) {
+        Preferences.batteryFloor = sender.tag
+        checkBattery()
+    }
+
+    @objc private func menuToggleOnlyOnPower() {
+        Preferences.onlyOnPower.toggle()
+        checkBattery()
     }
 
     @objc private func menuToggleAutoUpdate() {

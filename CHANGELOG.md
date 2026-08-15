@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0
+
+- **Battery guard.** Keeping a Mac awake makes one mistake easy — mode on, lid shut, laptop
+  in a bag, running hot until the battery is flat. The mode now switches itself off at a
+  charge you choose, 20% by default, and optionally the moment the power adapter is
+  unplugged. A notification says which of the two fired.
+- Neither trips on a desktop Mac or when the battery reading is missing: dropping the mode
+  for a reason the app cannot name would be worse than leaving it alone.
+- Power source changes arrive as events rather than polling — `IOPSNotificationCreateRunLoopSource`
+  is public, unlike anything covering the sleep ban.
+
 ## 1.2.1
 
 - Notification permission is asked for once, the first time there is an update to report,

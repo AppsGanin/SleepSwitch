@@ -49,3 +49,12 @@
 "alert.autoEnable.text" = "Blocking lid-close sleep needs administrator rights. Without the sudo rule SleepSwitch will not ask for a password at every login — it will start in partial mode instead, where idle sleep is blocked but closing the lid still puts your Mac to sleep.";
 "alert.autoEnable.install" = "Set up passwordless toggling…";
 "alert.autoEnable.keep" = "Leave it as is";
+
+/* Battery guard */
+"menu.batteryFloor" = "Turn off on low battery";
+"menu.batteryFloor.never" = "Never";
+"menu.batteryFloor.at" = "At %d%%";
+"menu.onlyOnPower" = "Keep awake only on power";
+"notify.turnedOff" = "SleepSwitch turned the mode off";
+"notify.unplugged" = "The power adapter was unplugged. Your Mac sleeps as configured again.";
+"notify.lowBattery" = "The battery is down to %d%%. Your Mac sleeps as configured again.";
