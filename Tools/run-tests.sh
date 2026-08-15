@@ -1,6 +1,8 @@
 #!/bin/bash
 # Runs the test suite. With --network it also queries the real GitHub API.
-# swiftc insists the file carrying top-level code be named main.swift, hence the copy.
+#
+# There is no Xcode test target on purpose: the suite is a plain executable built from the
+# same sources with swiftc, so the whole project still needs nothing but the toolchain.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -9,6 +11,14 @@ trap 'rm -rf "$WORK"' EXIT
 
 "$ROOT/Tools/check-localization.sh"
 
-cp "$ROOT/Tools/test-updater.swift" "$WORK/main.swift"
-swiftc -o "$WORK/tests" "$ROOT/Sources/Updater.swift" "$WORK/main.swift"
+# Only the AppKit-free half of the app takes part: everything the tests actually drive.
+swiftc -o "$WORK/tests" \
+	-framework IOKit \
+	"$ROOT/Sources/Localization.swift" \
+	"$ROOT/Sources/PowerAssertions.swift" \
+	"$ROOT/Sources/SystemSleepBan.swift" \
+	"$ROOT/Sources/SleepMode.swift" \
+	"$ROOT/Sources/Updater.swift" \
+	"$ROOT/Tools/tests/"*.swift
+
 "$WORK/tests" "$@"

@@ -98,19 +98,40 @@ final class UpdateCoordinator: NSObject, UNUserNotificationCenterDelegate {
     /// whatever the user is doing.
     private func notify(_ release: Updater.Release) {
         let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert]) { [weak self] granted, _ in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                guard granted else {
-                    // Notifications are turned off — a window beats saying nothing.
-                    self.offer(release)
-                    return
+        center.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .notDetermined:
+                // Ask once, the first time there is actually something to say.
+                center.requestAuthorization(options: [.alert]) { granted, _ in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self.deliver(release, through: center)
+                        } else {
+                            self.fallBackToWindow(release)
+                        }
+                    }
                 }
-                center.add(UNNotificationRequest(identifier: "update-\(release.version)",
-                                                 content: self.content(for: release),
-                                                 trigger: nil))
+            case .denied:
+                DispatchQueue.main.async { self.fallBackToWindow(release) }
+            default:
+                DispatchQueue.main.async { self.deliver(release, through: center) }
             }
         }
+    }
+
+    private func deliver(_ release: Updater.Release, through center: UNUserNotificationCenter) {
+        Preferences.announcedVersion = release.version
+        center.add(UNNotificationRequest(identifier: "update-\(release.version)",
+                                         content: content(for: release),
+                                         trigger: nil))
+    }
+
+    /// Notifications are off, so a window is the only way to say anything at all — but it
+    /// gets one chance per version, not one per day.
+    private func fallBackToWindow(_ release: Updater.Release) {
+        guard release.version != Preferences.announcedVersion else { return }
+        Preferences.announcedVersion = release.version
+        offer(release)
     }
 
     private func content(for release: Updater.Release) -> UNMutableNotificationContent {

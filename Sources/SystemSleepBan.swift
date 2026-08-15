@@ -1,6 +1,27 @@
 import Foundation
 import IOKit
 
+/// The privileged half behind a protocol, so the state machine that drives it can be
+/// exercised in tests without touching real power settings.
+protocol SleepBanControlling {
+    var isActive: Bool { get }
+    func set(_ on: Bool, allowPrompt: Bool) -> Result<Void, SystemSleepBan.Failure>
+    func clearQuietly()
+}
+
+/// Production implementation: forwards straight to `SystemSleepBan`.
+struct SystemSleepBanControl: SleepBanControlling {
+    var isActive: Bool { SystemSleepBan.isActive }
+
+    func set(_ on: Bool, allowPrompt: Bool) -> Result<Void, SystemSleepBan.Failure> {
+        SystemSleepBan.set(on, allowPrompt: allowPrompt)
+    }
+
+    func clearQuietly() {
+        SystemSleepBan.clearQuietly()
+    }
+}
+
 /// The privileged half: `pmset -a disablesleep`, the setting that governs what happens
 /// when the lid closes.
 ///

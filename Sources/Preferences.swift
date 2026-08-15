@@ -8,6 +8,7 @@ enum Preferences {
         static let autoCheckUpdates = "autoCheckUpdates"
         static let lastUpdateCheck = "lastUpdateCheck"
         static let skippedVersion = "skippedVersion"
+        static let announcedVersion = "announcedVersion"
     }
 
     private static let store = UserDefaults.standard
@@ -40,5 +41,12 @@ enum Preferences {
     static var skippedVersion: String? {
         get { store.string(forKey: Key.skippedVersion) }
         set { store.set(newValue, forKey: Key.skippedVersion) }
+    }
+
+    /// Last version already brought to the user's attention. Notifications can be denied,
+    /// and the fallback is a window — which must not reappear every single day.
+    static var announcedVersion: String? {
+        get { store.string(forKey: Key.announcedVersion) }
+        set { store.set(newValue, forKey: Key.announcedVersion) }
     }
 }

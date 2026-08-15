@@ -16,6 +16,11 @@ final class SleepMode {
     }
 
     private let assertions = PowerAssertions()
+    private let ban: SleepBanControlling
+
+    init(ban: SleepBanControlling = SystemSleepBanControl()) {
+        self.ban = ban
+    }
 
     /// The system ban was switched on by us, so we owe its removal. A ban that was
     /// already there when we launched is somebody else's to clear.
@@ -24,12 +29,12 @@ final class SleepMode {
     private(set) var isOn = false
 
     /// The system ban is on as well, not just our assertions.
-    var isFullyOn: Bool { isOn && SystemSleepBan.isActive }
+    var isFullyOn: Bool { isOn && ban.isActive }
 
     /// Adopts whatever the system reports at startup — including a ban left behind by a
     /// crash, which is better shown honestly than silently ignored.
     func adoptSystemState() {
-        isOn = SystemSleepBan.isActive
+        isOn = ban.isActive
         assertions.apply(active: isOn)
     }
 
@@ -39,7 +44,7 @@ final class SleepMode {
         assertions.apply(active: wanted)
 
         var outcome = Outcome.applied
-        switch SystemSleepBan.set(wanted, allowPrompt: askForPassword) {
+        switch ban.set(wanted, allowPrompt: askForPassword) {
         case .success:
             banIsOurs = wanted
         case .failure(.cancelled):
@@ -50,7 +55,7 @@ final class SleepMode {
 
         // Switching off did not go through and the system ban is still standing, so the
         // mode is not really off. Show that immediately rather than at the next sync.
-        if !wanted && SystemSleepBan.isActive {
+        if !wanted && ban.isActive {
             isOn = true
             assertions.apply(active: true)
         }
@@ -61,7 +66,7 @@ final class SleepMode {
     /// Returns true when the state actually moved.
     @discardableResult
     func syncWithSystem() -> Bool {
-        let banned = SystemSleepBan.isActive
+        let banned = ban.isActive
 
         if !isOn && banned {
             isOn = true
@@ -87,9 +92,9 @@ final class SleepMode {
         guard banIsOurs else { return }
         banIsOurs = false
 
-        SystemSleepBan.clearQuietly()
-        if mayAskPassword && SystemSleepBan.isActive {
-            _ = SystemSleepBan.set(false)
+        ban.clearQuietly()
+        if mayAskPassword && ban.isActive {
+            _ = ban.set(false, allowPrompt: true)
         }
     }
 }

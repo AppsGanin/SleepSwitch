@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.1
+
+- Notification permission is asked for once, the first time there is an update to report,
+  instead of on every check. If notifications are denied the app falls back to a window,
+  but only once per version — a daily popup would be exactly the interruption the
+  notification was meant to avoid.
+- The sleep-mode state machine now takes its privileged half as a dependency, so the paths
+  that matter are covered by tests: a declined password leaves the mode partial rather than
+  off, a ban the app did not set is never cleared on the way out, logging out never opens a
+  password dialog, and partial mode is not mistaken for the mode being switched off.
+
 ## 1.2.0
 
 - A background update now arrives as a system notification with **Download** and **Skip
