@@ -156,12 +156,30 @@ git tag v1.0.1 && git push origin v1.0.1
 macOS 13 Ventura or newer. Apple Silicon and Intel. The interface follows your system
 language — English or Russian.
 
-## Uninstall
+## Upgrading and uninstalling
+
+**To upgrade, delete nothing.** Open the newer `.pkg` — the installer stops the running
+copy and replaces the bundle in place. Your settings and the `sudo` rule survive.
+
+**To remove it for good**, run [`uninstall.sh`](uninstall.sh) from a checkout, or the
+equivalent by hand:
 
 ```bash
-rm -rf /Applications/SleepSwitch.app
+sudo pmset -a disablesleep 0          # first — see the warning below
+sudo rm -rf /Applications/SleepSwitch.app
 sudo rm -f /etc/sudoers.d/sleepswitch
+sudo pkgutil --forget com.ganin.sleepswitch.app
+defaults delete com.ganin.sleepswitch
 ```
+
+> [!WARNING]
+> Clear the sleep ban **before** deleting the app. It is a system setting that outlives the
+> process, so dragging the app to the Trash while the mode is on leaves your Mac unable to
+> sleep with no switch left to turn it off. Toggling the mode off in the menu first does the
+> same thing.
+
+Dropping the app in the Trash is enough only when the mode is off and you do not mind the
+`sudo` rule and the receipt staying behind.
 
 ## License
 
