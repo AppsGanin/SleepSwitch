@@ -1,131 +1,152 @@
+<div align="center">
+
+<img src="docs/icon.png" width="128" alt="SleepSwitch">
+
 # SleepSwitch
 
-Переключатель в строке меню: одним кликом запрещает MacBook засыпать — и при закрытии
-крышки, и по таймеру бездействия.
+**One click in the menu bar and your MacBook stops sleeping — lid closed included.**
 
-macOS 13+. Universal — Apple Silicon и Intel.
+[![Release](https://img.shields.io/github/v/release/AppsGanin/SleepSwitch?style=flat-square&color=5b63e8)](https://github.com/AppsGanin/SleepSwitch/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/AppsGanin/SleepSwitch/build.yml?branch=main&style=flat-square)](https://github.com/AppsGanin/SleepSwitch/actions)
+[![Downloads](https://img.shields.io/github/downloads/AppsGanin/SleepSwitch/total?style=flat-square&color=5b63e8)](https://github.com/AppsGanin/SleepSwitch/releases)
+[![macOS](https://img.shields.io/badge/macOS-13%2B-000?style=flat-square&logo=apple)](#requirements)
+[![License](https://img.shields.io/github/license/AppsGanin/SleepSwitch?style=flat-square)](LICENSE)
 
-## Установка
+[Русская версия](README.ru.md)
 
-Скачайте `.pkg` из [релизов](../../releases) и откройте его.
+</div>
 
-> Приложение не подписано сертификатом Apple, поэтому при первом запуске macOS откажется
-> открывать пакет. Нажмите на файл правой кнопкой → **«Открыть»** → в диалоге ещё раз
-> **«Открыть»**.
+---
 
-Установщик кладёт приложение в `/Applications`, запускает его и — если не снять галочку
-на шаге «Настроить» — добавляет правило sudo для переключения без пароля.
+`caffeinate` keeps your Mac awake until you close the lid. Then it sleeps anyway, because
+lid-close sleep is a separate setting that lives behind `sudo`. SleepSwitch flips both at
+once, from a single menu bar icon.
 
-Собрать самому:
+Useful when you want to close the lid and keep a build, a download, a render, or an SSH
+session running — without an external display, without a dummy HDMI plug, without leaving
+the lid propped open.
 
-```bash
-./make-installer.sh    # → dist/SleepSwitch-<версия>.pkg
+## Features
+
+- **Lid-close sleep off.** Shut the laptop, it keeps running.
+- **Idle sleep off.** Your idle timer is ignored while the mode is on.
+- **Screen stays lit** (optional, one checkbox).
+- **Ask for the password once.** The installer sets up a narrowly scoped `sudo` rule, then
+  toggling never prompts again.
+- **Nothing left behind.** Quit the app — or kill it — and the sleep ban lifts itself.
+- **One Swift file**, ~520 lines, no dependencies, no background daemon, no telemetry.
+- **Universal binary**, Apple Silicon and Intel.
+
+## Install
+
+Grab the `.pkg` from the [latest release](https://github.com/AppsGanin/SleepSwitch/releases/latest)
+and open it.
+
+> [!NOTE]
+> The app is not signed with an Apple Developer certificate, so macOS blocks the first
+> open. Right-click the `.pkg` → **Open** → **Open** again. One-time.
+
+The installer drops the app in `/Applications`, launches it, and — unless you untick the
+box under **Customize** — installs the passwordless `sudo` rule.
+
+## Usage
+
+| Action | Result |
+| --- | --- |
+| **Left click** the icon | Toggle the mode |
+| **Right click** | Menu: display, launch, login item, `sudo` rule |
+
+The icon is the state:
+
+| Icon | Meaning |
+| --- | --- |
+| 🌙 | Normal — your Mac sleeps as configured |
+| ☕️ | Mode on — sleep fully blocked |
+| ⚠️ | Partial — idle sleep blocked, but the lid still puts it to sleep |
+
+## How it works
+
+Two independent layers, because macOS treats these as two different things:
+
+| Layer | Blocks | Needs root |
+| --- | --- | --- |
+| `pmset -a disablesleep 1` | Lid-close sleep, and all sleep | Yes |
+| `PreventUserIdleSystemSleep` assertion | Idle sleep | No |
+| `PreventUserIdleDisplaySleep` assertion | Display turning off | No |
+
+The IOKit assertions are held by the process, so they evaporate the moment the app dies —
+they can never get stuck. The `pmset` setting persists, so the app clears it on quit, on
+`SIGTERM`, and reports the real state at launch by reading `SleepDisabled` straight from
+`IOPMrootDomain`.
+
+## About the sudo rule
+
+`pmset disablesleep` needs root. Asking for a password on every toggle is unusable, so the
+installer writes `/etc/sudoers.d/sleepswitch`:
+
+```
+you ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 0
+you ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1
 ```
 
-Или без установщика, сразу в `/Applications`:
+Two commands, no wildcards. `sudo` matches arguments exactly, so this grants the ability to
+toggle a sleep setting and nothing else — `pmset -a sleep 0` still asks for a password.
 
-```bash
-./install.sh
-```
+The rule is written, validated with `visudo`, and installed entirely as root inside a
+mode-`0700` temp directory, so there is no user-writable file to swap in between the check
+and the install. The username is validated before it reaches `sudoers`, and the rule is only
+granted to an account in the `admin` group.
 
-## Управление
-
-| Действие | Что делает |
-|---|---|
-| Левый клик по иконке | Включает / выключает режим |
-| Правый клик | Меню с настройками |
-
-Иконка показывает состояние:
-
-- 🌙 `moon.zzz` — обычный режим, Mac засыпает как настроено в системе
-- ☕️ `cup.and.saucer` — режим активен, сон полностью запрещён
-- ⚠️ треугольник — режим включён частично: сон по бездействию запрещён, но крышка
-  всё ещё усыпит Mac (обычно потому, что вы отменили ввод пароля)
-
-## Что происходит под капотом
-
-Включённый режим делает две вещи:
-
-1. `pmset -a disablesleep 1` — системный запрет сна. Именно он отвечает за закрытую
-   крышку. **Требует прав администратора.**
-2. IOKit-ассершены `PreventUserIdleSystemSleep` и `PreventUserIdleDisplaySleep` —
-   запрещают засыпание по бездействию и не дают гаснуть экрану. Прав не требуют и
-   автоматически снимаются, если приложение упадёт.
-
-При выходе из приложения запрет сна снимается автоматически.
-
-## Пароль при каждом переключении
-
-По умолчанию macOS спрашивает пароль администратора на каждое изменение `pmset`.
-Установщик (или пункт меню **«Переключать без пароля…»**) ставит правило в
-`/etc/sudoers.d/sleepswitch`, разрешающее ровно две команды:
-
-```
-/usr/bin/pmset -a disablesleep 0
-/usr/bin/pmset -a disablesleep 1
-```
-
-Ничего другого это правило не разрешает. Убрать — пункт меню «Снова спрашивать пароль…»
-или вручную:
+Opt out at install time, or later from the menu — or by hand:
 
 ```bash
 sudo rm /etc/sudoers.d/sleepswitch
 ```
 
-## Блокировка экрана
+## Screen lock
 
-Запрет сна и блокировка экрана — независимые настройки macOS. Если после открытия
-крышки Mac всё равно просит пароль, значит включена системная блокировка. Её нельзя
-выключить из приложения: macOS специально требует пароль учётной записи для такого
-изменения (защита от вредоносного софта).
-
-Выключить самому:
+Sleep and screen lock are separate macOS settings, and SleepSwitch only touches sleep. If
+your Mac asks for a password when you reopen the lid, that is the lock, and macOS
+deliberately requires your account password to change it — no app can flip it silently.
 
 ```bash
-sysadminctl -screenLock off -password -
+sysadminctl -screenLock off -password -        # disable
+sysadminctl -screenLock immediate -password -  # restore
+sysadminctl -screenLock status                 # check
 ```
 
-Вернуть обратно:
+The menu has a shortcut to the matching System Settings pane.
+
+## Build from source
 
 ```bash
-sysadminctl -screenLock immediate -password -
+./make-installer.sh   # → dist/SleepSwitch-<version>.pkg
+./install.sh          # or straight into /Applications, no installer
 ```
 
-Или через меню приложения → **«Настройки блокировки экрана…»** → «Запрашивать пароль
-после начала заставки или выключения дисплея» → «Никогда».
+Xcode or the Command Line Tools is the only requirement. The app icon is drawn in code by
+[`Tools/make-icon.swift`](Tools/make-icon.swift) at build time — no binary assets in the repo.
 
-## Релизы
-
-Версия по умолчанию лежит в файле `VERSION`. Релиз выпускается тегом:
+Releases are cut by tag:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v1.0.1 && git push origin v1.0.1
 ```
 
-GitHub Actions соберёт universal-приложение, упакует `.pkg` и `.zip` и создаст релиз.
-Версия берётся из тега, файл `VERSION` при этом не трогается — он нужен только для
-локальных сборок.
+## Requirements
 
-## Структура
+macOS 13 Ventura or newer. Apple Silicon and Intel.
 
-```
-Sources/main.swift          всё приложение
-build.sh                    сборка build/SleepSwitch.app (universal, ad-hoc подпись)
-make-installer.sh           сборка dist/SleepSwitch-<версия>.pkg
-install.sh                  сборка + копирование в /Applications без установщика
-packaging/
-  distribution.xml.in       описание окна установщика и его шагов
-  resources/                тексты приветствия и завершения
-  scripts-app/              pre/post-install для компонента с приложением
-  scripts-sudoers/          postinstall, ставящий правило sudo
-.github/workflows/
-  build.yml                 сборка на каждый push и PR
-  release.yml               релиз по тегу v*
-```
+> [!NOTE]
+> The app interface and the installer are currently Russian-only.
 
-## Удаление
+## Uninstall
 
 ```bash
 rm -rf /Applications/SleepSwitch.app
 sudo rm -f /etc/sudoers.d/sleepswitch
 ```
+
+## License
+
+[MIT](LICENSE)
