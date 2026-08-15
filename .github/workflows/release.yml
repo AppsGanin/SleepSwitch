@@ -36,8 +36,24 @@ jobs:
             "dist/SleepSwitch-${{ steps.v.outputs.version }}.zip"
 
       - name: Написать описание релиза
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
         run: |
-          cat > release-notes.md <<'NOTES'
+          # Раздел этой версии из CHANGELOG — если его нет, релиз выходит без него.
+          awk -v v="## $VERSION" '
+            $0 == v { inside = 1; next }
+            /^## / && inside { exit }
+            inside { print }
+          ' CHANGELOG.md | sed '/./,$!d' > changes.md
+
+          if [ -s changes.md ]; then
+            { echo "## What changed"; echo; cat changes.md; echo; } > release-notes.md
+          else
+            echo "CHANGELOG не содержит раздела для $VERSION — описание без списка изменений." >&2
+            : > release-notes.md
+          fi
+
+          cat >> release-notes.md <<'NOTES'
           Menu bar toggle that stops your MacBook from sleeping — lid closed included.
 
           ## Install
