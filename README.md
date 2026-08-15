@@ -116,8 +116,11 @@ itself off once the battery falls to a threshold you choose — 20% out of the b
 you ask it to, the moment the power adapter is unplugged. Both settings sit in the menu, and
 a notification tells you which of the two fired.
 
-Neither fires on a desktop Mac, nor when the system reports no usable battery reading:
-switching the mode off for a reason the app cannot state would be worse than leaving it be.
+On a Mac with no built-in battery the two settings are not shown at all — an inert control
+is worse than no control. The check is by power-source type rather than by "is there a
+power source", since a UPS plugged into a desktop is one too. And if the battery reading is
+ever missing, nothing trips: switching the mode off for a reason the app cannot state would
+be worse than leaving it be.
 
 ## Updates
 

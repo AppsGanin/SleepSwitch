@@ -207,11 +207,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             #selector(menuToggle), key: "t"))
         menu.addItem(.separator())
 
-        menu.addItem(batteryFloorItem())
-        menu.addItem(checkbox(L("menu.onlyOnPower", "Keep awake only on power"),
-                              #selector(menuToggleOnlyOnPower),
-                              isOn: Preferences.onlyOnPower))
-        menu.addItem(.separator())
+        // A Mac without a battery has nothing to guard, so the settings are not shown at
+        // all rather than shown and quietly inert.
+        if PowerSource.hasInternalBattery {
+            menu.addItem(batteryFloorItem())
+            menu.addItem(checkbox(L("menu.onlyOnPower", "Keep awake only on power"),
+                                  #selector(menuToggleOnlyOnPower),
+                                  isOn: Preferences.onlyOnPower))
+            menu.addItem(.separator())
+        }
 
         menu.addItem(checkbox(L("menu.enableAtLaunch", "Turn the mode on at launch"),
                               #selector(menuToggleEnableAtLaunch),

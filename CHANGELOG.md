@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1
+
+- The battery settings are hidden on a Mac with no built-in battery instead of sitting
+  there inert.
+- The battery is now identified by power-source type rather than by taking the first source
+  the system lists. A UPS is a power source too, so on a desktop it could have passed for a
+  battery — and on a laptop with a UPS attached the app could have read the wrong one.
+
 ## 1.3.0
 
 - **Battery guard.** Keeping a Mac awake makes one mistake easy — mode on, lid shut, laptop

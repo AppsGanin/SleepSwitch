@@ -15,22 +15,33 @@ final class PowerSource {
         static let unknown = State(onBattery: false, percentage: nil)
     }
 
+    /// Whether this Mac has a built-in battery at all — that is, whether it is a laptop.
+    /// Hardware does not change under a running app, so it is read once.
+    static let hasInternalBattery = internalBattery() != nil
+
     static var current: State {
+        guard let description = internalBattery(),
+              let state = description[kIOPSPowerSourceStateKey] as? String else { return .unknown }
+
+        return State(onBattery: state == kIOPSBatteryPowerValue,
+                     percentage: percentage(from: description))
+    }
+
+    /// Deliberately matched by type rather than by "the first source there is": a UPS is a
+    /// power source too, and on a desktop it would otherwise pass for a battery.
+    private static func internalBattery() -> [String: Any]? {
         guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let sources = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef]
-        else { return .unknown }
+        else { return nil }
 
         for source in sources {
             guard let description = IOPSGetPowerSourceDescription(blob, source)?
-                .takeUnretainedValue() as? [String: Any],
-                let state = description[kIOPSPowerSourceStateKey] as? String
-            else { continue }
-
-            return State(onBattery: state == kIOPSBatteryPowerValue,
-                         percentage: percentage(from: description))
+                .takeUnretainedValue() as? [String: Any] else { continue }
+            if description[kIOPSTypeKey] as? String == kIOPSInternalBatteryType {
+                return description
+            }
         }
-        // No power sources at all: a desktop Mac. Never a reason to drop the mode.
-        return .unknown
+        return nil
     }
 
     private static func percentage(from description: [String: Any]) -> Int? {
