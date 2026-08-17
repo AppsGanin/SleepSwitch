@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.0
+
+- **A cue when the lid moves** while the mode is on: a muted porcelain tone as it closes,
+  a higher one as it opens. Off from the menu, and silent with the mode off — closing the
+  lid then means sleep, which needs no announcing.
+- Only on Macs that have a lid. An iMac has no `AppleClamshellState` to report, so neither
+  the watcher nor the menu item exists there.
+- The sounds are synthesised at build time like the icon, so no audio files live in the
+  repository and nobody's sample is being borrowed.
+- The clamshell, unlike the sleep ban, does arrive through the IOKit interest notification,
+  so this needs no polling. Unrelated power messages share that channel, so the state is
+  re-read and compared rather than trusting an undocumented message type.
+
 ## 1.4.0
 
 - **Uninstall from the menu**, behind a confirmation. Anyone who installed the `.pkg` had no

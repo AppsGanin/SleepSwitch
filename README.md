@@ -35,6 +35,7 @@ the lid propped open.
   toggling never prompts again.
 - **Won't flatten your battery.** The mode switches itself off below a charge you pick, and
   optionally the moment you unplug.
+- **Tells you it worked.** A quiet tone as the lid closes and another as it opens.
 - **Nothing left behind.** Quit the app — or kill it — and the sleep ban lifts itself.
 - **Updates itself from GitHub** — checks daily, hands you the installer, never swaps
   binaries behind your back.
@@ -107,6 +108,17 @@ Opt out at install time, or later from the menu — or by hand:
 ```bash
 sudo rm /etc/sudoers.d/sleepswitch
 ```
+
+## Lid cues
+
+With the mode on, closing the lid plays a muted porcelain tone and opening it plays a
+higher one — enough to confirm the Mac stayed awake without opening anything to check. The
+menu switches them off, and they never sound with the mode off, since closing the lid then
+simply means sleep.
+
+The tones are synthesised at build time by [`Tools/make-sounds.swift`](Tools/make-sounds.swift),
+so no audio file lives in this repository. A Mac without a lid gets neither the cues nor the
+setting.
 
 ## Battery guard
 

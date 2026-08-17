@@ -40,6 +40,9 @@ PLIST
 "$ROOT/Tools/check-localization.sh"
 cp -R "$ROOT/Resources/"*.lproj "$APP/Contents/Resources/"
 
+echo "Generating the sounds…"
+swift "$ROOT/Tools/make-sounds.swift" "$APP/Contents/Resources" >/dev/null
+
 echo "Drawing the icon…"
 ICONSET="$ROOT/build/AppIcon.iconset"
 swift "$ROOT/Tools/make-icon.swift" "$ICONSET" >/dev/null

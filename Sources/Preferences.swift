@@ -12,6 +12,7 @@ enum Preferences {
         static let batteryFloor = "batteryFloor"
         static let onlyOnPower = "onlyOnPower"
         static let warnedAboutMissingRule = "warnedAboutMissingRule"
+        static let lidSounds = "lidSounds"
     }
 
     private static let store = UserDefaults.standard
@@ -24,6 +25,7 @@ enum Preferences {
             // bag until the battery is flat — is worse than an unexpected switch off.
             Key.batteryFloor: 20,
             Key.onlyOnPower: false,
+            Key.lidSounds: true,
         ])
     }
 
@@ -37,6 +39,12 @@ enum Preferences {
     static var onlyOnPower: Bool {
         get { store.bool(forKey: Key.onlyOnPower) }
         set { store.set(newValue, forKey: Key.onlyOnPower) }
+    }
+
+    /// Play a cue when the lid opens or closes while the mode is on.
+    static var lidSounds: Bool {
+        get { store.bool(forKey: Key.lidSounds) }
+        set { store.set(newValue, forKey: Key.lidSounds) }
     }
 
     /// Whether the user has already been told that without the sudo rule the sleep ban can

@@ -70,3 +70,6 @@
 "uninstall.confirm.button" = "Uninstall";
 "uninstall.failed" = "Could not finish uninstalling";
 "error.badPath" = "The app sits in a folder this cannot handle safely.";
+
+/* Lid cues */
+"menu.lidSounds" = "Sound when the lid opens and closes";

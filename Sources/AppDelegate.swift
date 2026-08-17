@@ -13,6 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let mode = SleepMode()
     private let updates = UpdateCoordinator()
     private let powerSource = PowerSource()
+    private let lid = LidWatcher()
+    private let sounds = Sounds()
 
     private var statusItem: NSStatusItem!
     private var syncTimer: Timer?
@@ -55,6 +57,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         updates.start()
         powerSource.startObserving { [weak self] in self?.checkBattery() }
+        lid.startObserving { [weak self] closed in self?.lidChanged(closed: closed) }
+    }
+
+    /// A cue only while the mode is on. With the mode off, closing the lid puts the Mac to
+    /// sleep and there is nothing to announce.
+    private func lidChanged(closed: Bool) {
+        guard mode.isOn, Preferences.lidSounds else { return }
+        sounds.play(closed ? .lidClosed : .lidOpened)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -249,6 +259,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(checkbox(L("menu.loginItem", "Open at login"),
                               #selector(menuToggleLoginItem),
                               isOn: isLoginItemEnabled))
+        // Nothing to announce on a Mac with no lid, so the setting is not offered either.
+        if LidWatcher.hasLid {
+            menu.addItem(checkbox(L("menu.lidSounds", "Sound when the lid opens and closes"),
+                                  #selector(menuToggleLidSounds),
+                                  isOn: Preferences.lidSounds))
+        }
         menu.addItem(.separator())
 
         if SystemSleepBan.hasPasswordlessRule {
@@ -329,6 +345,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func menuToggleOnlyOnPower() {
         Preferences.onlyOnPower.toggle()
         checkBattery()
+    }
+
+    @objc private func menuToggleLidSounds() {
+        Preferences.lidSounds.toggle()
+        // Play the cue as it is switched on, so the setting demonstrates itself.
+        if Preferences.lidSounds { sounds.play(.lidOpened) }
     }
 
     @objc private func menuToggleAutoUpdate() {
