@@ -50,7 +50,10 @@ and open it.
 
 > [!NOTE]
 > The app is not signed with an Apple Developer certificate, so macOS blocks the first
-> open. Right-click the `.pkg` → **Open** → **Open** again. One-time.
+> open. On macOS 15 Sequoia and newer, Control-click no longer overrides that: open the
+> `.pkg`, let it be refused, then go to **System Settings → Privacy & Security**, where an
+> **Open Anyway** button now sits under *Security*. On macOS 14 and earlier, Control-click
+> the `.pkg` → **Open** → **Open** again. One-time either way.
 
 The installer drops the app in `/Applications`, launches it, and — unless you untick the
 box under **Customize** — installs the passwordless `sudo` rule.
